@@ -29,7 +29,7 @@ export const Transactioncolumns = [
   {
     field: 'DateMovemented',
     title: 'DateMovemented',
-    width: '185px',
+    width: '190px',
     editor: 'date',
     resizable: true,
     filter: 'text'
@@ -37,9 +37,9 @@ export const Transactioncolumns = [
   {
     field: 'Send',
     title: 'Send',
-    width: '120px',
+    width: '115px',
     resizable: true
   },
-  { field: 'Response', title: 'Response', width: '120x', resizable: true },
+  { field: 'Response', title: 'Response', width: '115x', resizable: true },
   { field: 'Remove', title: 'Remove', width: '120px', resizable: true, cell: 'RemoveCell' }
 ]

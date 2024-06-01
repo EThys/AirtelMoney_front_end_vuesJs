@@ -378,18 +378,39 @@ const dataStateChange = (event: GridDataStateChangeEvent) => {
   }
 }
 
-const remove = async (item: any) => {
-  // Call API to delete item
-  console.log(item.TransactionId)
-  await useAxiosRequestWithToken(token)
-    .delete(`${ApiRoutes.deleteTransaction}/${item.TransactionId}`)
-    .then((response) => {
-      // Filter item out of transactions array
-      transactions.value = transactions.value.filter((i) => i.TransactionId !== item.TransactionId)
+const remove = async (props: any) => {
+  try {
+    // Afficher un loader
+    loader.value = true
+    const transactionId = props.dataItem['TransactionId']
+    console.log('ngaeeeeeeeeeeeee', transactionId)
+
+    // Appeler l'API de suppression
+    const Response = await useAxiosRequestWithToken(token).delete(
+      `${ApiRoutes.deleteTransaction}/${transactionId}`
+    )
+    console.log(Response)
+
+    const index = dataResult.value.data.findIndex((i) => i.TransactionId === transactionId)
+    dataResult.value.data.splice(index, 1)
+
+    // Afficher une notification de succès
+    $toast.open({
+      message: 'Item supprimé avec succès',
+      type: 'success'
     })
-    .catch((error) => {
-      console.log(error)
+  } catch (error) {
+    console.log(error)
+    // Afficher erreur
+    $toast.open({
+      message: 'Erreur de suppression',
+      type: 'error'
     })
+    console.error(error)
+  } finally {
+    // Cacher le loader
+    loader.value = false
+  }
 }
 </script>
 <template>
@@ -453,7 +474,7 @@ const remove = async (item: any) => {
     <template v-slot:RemoveCell="{ props }">
       <td lass="k-command-cell k-table-td">
         <kbutton
-          @click="remove(item)"
+          @click="remove(props)"
           class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
         >
           Remove
