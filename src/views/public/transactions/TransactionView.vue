@@ -56,7 +56,7 @@ const currencies = ref<Array<ICurrency>>([{}])
 const closeModal = () => {
   isModalOpen.value = false
 }
-const dataResult = ref<DataResult>({ data: [] as any, total: 0 })
+
 const loader = ref<Boolean>(false)
 const show = ref<any>(false)
 show.value = show.value ? false : 'loader'
@@ -64,9 +64,10 @@ const route = useRoute()
 const showLoad = ref<Boolean>(false)
 const sortable = ref(true)
 const transactions = ref<Array<ITransaction>>([{}])
+const dataResult = ref<DataResult>({ data: [] as any, total: 0 })
 const skip = ref<number | undefined>(0)
 const token = getToken() as string
-const take = ref<number | undefined>(4)
+const take = ref<number | undefined>(10)
 const sort = ref<SortDescriptor[] | undefined>([
   { field: 'Number', dir: 'desc' },
   { field: 'Amount', dir: 'desc' }
@@ -107,18 +108,18 @@ const editField = ref<any>()
 const dropdownlist = DropDownList
 
 const itemChange = (e: any) => {
-  const data = transactions.value.slice()
+  const data = dataResult.value.data.slice()
   const index = data.findIndex((d) => d.TransactionId === e.dataItem.TransactionId)
   console.log('deeeeeeeeeeeeeeeeeee', e.dataItem.TransactionId)
   data[index] = { ...data[index], [e.field]: e.value }
-  transactions.value = data
+  dataResult.value.data = data
   console.log('dataChange', data[index])
   console.log('data', transactions.value.length)
 }
 
 const updated = async () => {
   showLoad.value = true
-  const editedItems = transactions.value.filter((item) => item.inEdit)
+  const editedItems = dataResult.value.data.filter((item) => item.inEdit)
   const newItems = editedItems.filter((item) => item.TransactionId === null)
   const updatedItems = editedItems.filter((item) => item.TransactionId !== null)
 
@@ -295,7 +296,7 @@ const insert = () => {
 
 const cancel = () => {
   // Récupérer les éléments en édition
-  let editedItems = transactions.value.filter((item) => item.inEdit)
+  let editedItems = dataResult.value.data.filter((item) => item.inEdit)
 
   // Si des éléments sont en édition
   if (editedItems.length) {
@@ -304,8 +305,8 @@ const cancel = () => {
       // Vérifier si TransactionId est null (nouvel ajout)
       if (item.TransactionId === null) {
         // Supprimer l'élément du tableau
-        const index = transactions.value.findIndex((t) => t === item)
-        transactions.value.splice(index, 1)
+        const index = dataResult.value.data.findIndex((t) => t === item)
+        dataResult.value.data.splice(index, 1)
       } else {
         // Sinon mettre fin à l'édition
         item.inEdit = undefined
@@ -313,7 +314,7 @@ const cancel = () => {
     })
   }
   // Mettre à jour le state
-  transactions.value = [...transactions.value]
+  dataResult.value.data = [...dataResult.value.data]
 }
 const get_branches = () => {
   useAxiosRequestWithToken(token)
@@ -375,6 +376,20 @@ const dataStateChange = (event: GridDataStateChangeEvent) => {
       sort: event.data.sort
     })
   }
+}
+
+const remove = async (item: any) => {
+  // Call API to delete item
+  console.log(item.TransactionId)
+  await useAxiosRequestWithToken(token)
+    .delete(`${ApiRoutes.deleteTransaction}/${item.TransactionId}`)
+    .then((response) => {
+      // Filter item out of transactions array
+      transactions.value = transactions.value.filter((i) => i.TransactionId !== item.TransactionId)
+    })
+    .catch((error) => {
+      console.log(error)
+    })
 }
 </script>
 <template>
@@ -438,11 +453,7 @@ const dataStateChange = (event: GridDataStateChangeEvent) => {
     <template v-slot:RemoveCell="{ props }">
       <td lass="k-command-cell k-table-td">
         <kbutton
-          @click="
-            () => {
-              console.log(props.dataIndex)
-            }
-          "
+          @click="remove(item)"
           class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
         >
           Remove

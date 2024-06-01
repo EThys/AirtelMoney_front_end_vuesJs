@@ -7,7 +7,7 @@ export const ApiRoutes = {
   allTransaction: '/transactions',
   allBranche: '/branches',
   transactionByCurrency: '/transactions/currency/currencyCode',
-  deleteTransaction: 'transaction/transaction',
+  deleteTransaction: 'transaction',
   transactionList: '/transactions/currency/',
   addTransaction: 'transaction',
   updateTransaction: 'transaction'
