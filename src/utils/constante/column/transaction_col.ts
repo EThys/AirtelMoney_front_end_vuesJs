@@ -38,8 +38,10 @@ export const Transactioncolumns = [
     field: 'Send',
     title: 'Send',
     width: '115px',
+    cell: 'SendCell',
+    editable: false,
     resizable: true
   },
-  { field: 'Response', title: 'Response', width: '115x', resizable: true },
+  { field: 'Response', title: 'Response', width: '115x', editable: false, resizable: true },
   { field: 'Remove', title: 'Remove', width: '120px', resizable: true, cell: 'RemoveCell' }
 ]

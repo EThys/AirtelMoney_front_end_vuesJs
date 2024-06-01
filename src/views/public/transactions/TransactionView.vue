@@ -36,6 +36,7 @@ import { useAxiosRequestWithToken } from '@/utils/service/axios_api'
 import { ApiRoutes } from '@/utils/service/endpoint/api'
 //@ts-ignore
 import { IToken } from '@/utils/interface/token'
+import { Dialog, DialogActionsBar } from '@progress/kendo-vue-dialogs'
 //@ts-ignore
 import DropDownCell from './DropdownCell.vue'
 import { useToast } from 'vue-toast-notification'
@@ -44,6 +45,7 @@ import { useToast } from 'vue-toast-notification'
 import AddTransactionModalView from './AddTransactionModalView.vue'
 import { useRoute } from 'vue-router'
 const ddcell = DropDownCell
+const isConfirmOpen = ref(false)
 const isModalOpen = ref(false)
 const $toast = useToast()
 const openModal = () => {
@@ -78,6 +80,9 @@ const gridPageable = {
   type: 'numeric',
   pageSizes: true,
   previousNext: true
+}
+const openConfirm = () => {
+  isConfirmOpen.value = true
 }
 const pageChangeHandler = (event: any) => {
   loader.value = true
@@ -380,35 +385,33 @@ const dataStateChange = (event: GridDataStateChangeEvent) => {
 
 const remove = async (props: any) => {
   try {
-    // Afficher un loader
     loader.value = true
     const transactionId = props.dataItem['TransactionId']
     console.log('ngaeeeeeeeeeeeee', transactionId)
 
-    // Appeler l'API de suppression
-    const Response = await useAxiosRequestWithToken(token).delete(
-      `${ApiRoutes.deleteTransaction}/${transactionId}`
-    )
-    console.log(Response)
+    if (isConfirmOpen.value) {
+      const Response = await useAxiosRequestWithToken(token).delete(
+        `${ApiRoutes.deleteTransaction}/${transactionId}`
+      )
 
-    const index = dataResult.value.data.findIndex((i) => i.TransactionId === transactionId)
-    dataResult.value.data.splice(index, 1)
+      const index = dataResult.value.data.findIndex((i) => i.TransactionId === transactionId)
+      dataResult.value.data.splice(index, 1)
 
-    // Afficher une notification de succès
+      isConfirmOpen.value = false
+    }
+
     $toast.open({
       message: 'Item supprimé avec succès',
       type: 'success'
     })
   } catch (error) {
     console.log(error)
-    // Afficher erreur
     $toast.open({
       message: 'Erreur de suppression',
       type: 'error'
     })
     console.error(error)
   } finally {
-    // Cacher le loader
     loader.value = false
   }
 }
@@ -474,11 +477,36 @@ const remove = async (props: any) => {
     <template v-slot:RemoveCell="{ props }">
       <td lass="k-command-cell k-table-td">
         <kbutton
-          @click="remove(props)"
+          @click="openConfirm"
           class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
         >
           Remove
         </kbutton>
+        <Dialog
+          style="z-index: 1001"
+          class="mt-4"
+          v-if="isConfirmOpen"
+          @close="isConfirmOpen = false"
+        >
+          <div class="grid-container">
+            <p class="text-center">Confirmer la suppression?</p>
+
+            <DialogActionsBar>
+              <kbutton
+                class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
+                @click="isConfirmOpen = false"
+                >Annuler</kbutton
+              >
+
+              <kbutton
+                @click="remove(props)"
+                class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
+              >
+                Confirmer
+              </kbutton>
+            </DialogActionsBar>
+          </div>
+        </Dialog>
       </td>
     </template>
 
@@ -540,6 +568,11 @@ const remove = async (props: any) => {
           @itemchange="itemChange"
           @reload="reload"
         ></dropdownlist>
+      </td>
+    </template>
+    <template v-slot:SendCell="{ props }">
+      <td class="k-command-cell k-table-td">
+        {{ props.dataItem['Send'] == 0 ? 'No' : 'Yes' }}
       </td>
     </template>
 
