@@ -31,6 +31,17 @@ const auth = ref<IUserAuth>({
 async function login() {
   loading.value = true
   const data = JSON.parse(JSON.stringify(auth.value))
+  const timeoutId = setTimeout(() => {
+    // Déclenche une action si le timeout est atteint
+    $toast.open({
+      message: "Connexion échouée : temps d'attente dépassé",
+      type: 'error',
+      position: 'top-right',
+      duration: 3000
+    })
+    loading.value = false
+  }, 10000) //
+
   await useAxiosRequestWithToken()
     .post(`${ApiRoutes.login}`, data)
     .then(function (response) {
@@ -41,6 +52,7 @@ async function login() {
         setUser(response.data as IUser)
         router.push('/currency/usd')
       }
+      clearTimeout(timeoutId)
       loading.value = false
     })
     .catch(function (error) {
@@ -51,84 +63,13 @@ async function login() {
         position: 'top-right',
         duration: 3000
       })
+      clearTimeout(timeoutId)
       loading.value = false
     })
 }
 </script>
 
 <template>
-  <!-- <div
-    style="background-color: #97be5a"
-    class="flex min-h-full flex-1 flex-col justify-center px-6 py-12"
-  >
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-      <img class="mx-auto h-10 w-auto" />
-      <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-        {{ name }}
-      </h2>
-      <h3 class="text-xl mt-4 text-black-500 text-center">Airtel Money</h3>
-    </div>
-
-    <div
-      class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm bg-white dark:bg-gray-900 shadow-md rounded-lg px-8 py-6 max-w-md"
-    >
-      <form @submit.prevent="login" class="space-y-6">
-        <div>
-          <label for="username" class="block text-sm font-medium leading-6 text-gray-900"
-            >Nom Utilisateur</label
-          >
-          <div class="mt-2">
-            <input
-              id="username"
-              name="username"
-              type="text"
-              required
-              v-model="auth.UserName"
-              autocomplete="Nom"
-              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
-            />
-          </div>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between">
-            <label for="password" class="block text-sm font-medium leading-6 text-gray-900"
-              >Mot de passe</label
-            >
-
-            <input v-model="showPassword" type="checkbox" /> <label>Afficher le mot de passe</label>
-          </div>
-          <div class="mt-2">
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              id="password"
-              name="password"
-              required
-              v-model="auth.Password"
-              autocomplete="Mot de passe"
-              class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
-            />
-          </div>
-        </div>
-        <div class="loading-overlay" v-if="loading">
-          <div class="spinner">
-            <h2 class="typing text-xl text-white font-semibold tracking-wide">Airtel Money...</h2>
-          </div>
-        </div>
-
-        <div>
-          <button
-            type="submit"
-            class="flex w-full justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm"
-          >
-            Se connecter
-            <svg v-if="spinner" class="spinner inline h-6 w-6 mr-3" viewBox="0 0 4 4"></svg>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div> -->
-
   <section class="bg-green-600 dark:bg-gray-900">
     <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
       <a
