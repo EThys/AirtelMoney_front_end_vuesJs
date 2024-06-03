@@ -4,6 +4,7 @@ import type { ITransaction } from '@/utils/interface/transaction/ITransaction'
 //@ts-ignor
 import {
   Grid,
+  filterGroupByField,
   GridToolbar,
   GridNoRecords,
   GridDataStateChangeEvent
@@ -40,6 +41,9 @@ import { Dialog, DialogActionsBar } from '@progress/kendo-vue-dialogs'
 //@ts-ignore
 import DropDownCell from './DropdownCell.vue'
 import { useToast } from 'vue-toast-notification'
+//@ts-ignore
+import ColumnMenu from './ColumnMenuView.vue'
+import { DatePicker } from '@progress/kendo-vue-dateinputs'
 
 //@ts-ignore
 import AddTransactionModalView from './AddTransactionModalView.vue'
@@ -51,7 +55,7 @@ const $toast = useToast()
 const openModal = () => {
   isModalOpen.value = true
 }
-
+const datepicker = DatePicker
 const branches = ref<Array<IBranche>>({})
 const userTypes = ref<Array<IUserType>>([{}])
 const currencies = ref<Array<ICurrency>>([{}])
@@ -124,9 +128,14 @@ const itemChange = (e: any) => {
 
 const updated = async () => {
   showLoad.value = true
+
   const editedItems = dataResult.value.data.filter((item) => item.inEdit)
-  const newItems = editedItems.filter((item) => item.TransactionId === null)
-  const updatedItems = editedItems.filter((item) => item.TransactionId !== null)
+  const newItems = editedItems.filter(
+    (item) => typeof item.TransactionId === 'string' && item.TransactionId.startsWith('tmp_')
+  )
+  console.log('newItems', newItems)
+
+  const updatedItems = editedItems.filter((item) => item.TransactionId)
 
   try {
     // Envoyer les nouveaux éléments en POST
@@ -136,8 +145,8 @@ const updated = async () => {
         return item
       })
 
-      const filteredData = newItems.map((item) => {
-        return {
+      for (const item of newItems) {
+        const filteredData = {
           CurrencyFId: item.CurrencyFId,
           BrancheFId: item.BrancheFId,
           Number: item.Number,
@@ -147,35 +156,35 @@ const updated = async () => {
           DateMovemented: item.DateMovemented,
           Note: item.Note
         }
-      })
 
-      const body = JSON.stringify(filteredData).slice(1, -1)
-      const response = await useAxiosRequestWithToken(token).post(
-        `${ApiRoutes.addTransaction}`,
-        body
-      )
+        const body = JSON.stringify(filteredData)
+        const response = await useAxiosRequestWithToken(token).post(
+          `${ApiRoutes.addTransaction}`,
+          body
+        )
 
-      if (response.data.error) {
-        const errorMsg = response.data.error
-        $toast.open({
-          message: errorMsg,
-          type: 'error',
-          position: 'top-right',
-          duration: 1000
-        })
-        throw new Error(response.data.error)
-      } else {
-        const successMsg = response.data.message
-        $toast.open({
-          message: successMsg,
-          type: 'success',
-          position: 'top-right',
-          duration: 1000
-        })
+        if (response.data.error) {
+          const errorMsg = response.data.error
+          $toast.open({
+            message: errorMsg,
+            type: 'error',
+            position: 'top-right',
+            duration: 1000
+          })
+          throw new Error(response.data.error)
+        } else {
+          const successMsg = response.data.message
+          $toast.open({
+            message: successMsg,
+            type: 'success',
+            position: 'top-right',
+            duration: 1000
+          })
+        }
+
+        console.log('newItemsYasika', body)
+        await get_transaction()
       }
-      console.log(response.data)
-      console.log(newItems.length)
-      console.log('newItemsYasika', body)
     }
 
     // Mettre à jour les éléments existants en PUT
@@ -207,10 +216,10 @@ const updated = async () => {
           })
         }
       }
+      await get_transaction()
     }
 
     // // Rafraîchir les données après les mises à jour
-    await get_transaction()
   } catch (error) {
     console.log(error)
   } finally {
@@ -280,10 +289,16 @@ watchEffect(async () => {
 })
 
 const insert = () => {
+  const generateUniqueId = () => {
+    return 'tmp_' + Date.now().toString(16)
+  }
   const data = dataResult.value.data.slice()
 
+  const numLines = dataResult.value.data.length
+  console.log('numLines', numLines)
+
   const dataItem = {
-    TransactionId: null,
+    TransactionId: generateUniqueId(),
     Amount: '',
     Number: '',
     CurrencyFId: '',
@@ -296,6 +311,7 @@ const insert = () => {
   }
   const newtransactions = [...data]
   newtransactions.unshift(dataItem as any)
+
   dataResult.value.data = newtransactions
 }
 
@@ -308,7 +324,7 @@ const cancel = () => {
     // Parcourir les éléments
     editedItems.forEach((item) => {
       // Vérifier si TransactionId est null (nouvel ajout)
-      if (item.TransactionId === null) {
+      if (item.TransactionId.startsWith('tmp_')) {
         // Supprimer l'élément du tableau
         const index = dataResult.value.data.findIndex((t) => t === item)
         dataResult.value.data.splice(index, 1)
@@ -363,6 +379,19 @@ const createAppState = (dataState: State) => {
   take.value = dataState.take
   skip.value = dataState.skip
   sort.value = dataState.sort
+}
+
+const filteringChange = (e: any) => {
+  if (e.event) {
+    let isColumnActive = filterGroupByField(e.event.field, e.DataResult.filter)
+
+    // @ts-ignore
+    let changedColumn = this.Transactioncolumns.find((column) => column.field === e.event.field)
+
+    if (changedColumn) {
+      changedColumn.headerClassName = isColumnActive ? 'customMenu active' : ''
+    }
+  }
 }
 
 const dataStateChange = (event: GridDataStateChangeEvent) => {
@@ -428,7 +457,7 @@ const remove = async (props: any) => {
     @cellclick="cellClick"
     @itemchange="itemChange"
     :filter="filter"
-    @filterchange="filterChange"
+    @filteringChange="filteringChange"
     :loader="loader"
     @datastatechange="dataStateChange"
     :pageable="gridPageable"
@@ -509,6 +538,20 @@ const remove = async (props: any) => {
         </Dialog>
       </td>
     </template>
+    <template v-slot:myTemplate="{ props }">
+      <custom
+        :column="props.column"
+        :filterable="props.filterable"
+        :filter="props.filter"
+        :sortable="props.sortable"
+        :sort="props.sort"
+        :columns="Transactioncolumns"
+        @sortchange="(e: any) => props.onSortchange(e)"
+        @filterchange="(e: any) => props.onFilterchange(e)"
+        @closemenu="(e: any) => props.onClosemenu(e)"
+        @contentfocus="(e: any) => props.onContentfocus(e)"
+      />
+    </template>
 
     <template v-slot:BrancheCell="{ props }" v-if="branches.length > 0">
       <td>
@@ -521,7 +564,7 @@ const remove = async (props: any) => {
           :value="props.dataItem['branche']"
           @itemchange="itemChange"
           @change="
-            (event) => {
+            (event: { value: { BrancheId: any } }) => {
               props.dataItem['branche'] = event.value
               props.dataItem['BrancheFId'] = event.value.BrancheId
               props.dataItem['FromBranchId'] = event.value.BrancheId
@@ -540,7 +583,7 @@ const remove = async (props: any) => {
           :value="props.dataItem['user_type']"
           :text-field="'UserTypeName'"
           @change="
-            (event) => {
+            (event: { value: { UserTypeId: any } }) => {
               props.dataItem['user_type'] = event.value
               props.dataItem['UserTypeFId'] = event.value.UserTypeId
             }
@@ -559,7 +602,7 @@ const remove = async (props: any) => {
           :value="props.dataItem['currency']"
           :text-field="'CurrencyCode'"
           @change="
-            (event) => {
+            (event: { value: { CurrencyId: any } }) => {
               props.dataItem['currency'] = event.value
               props.dataItem['CurrencyFId'] = event.value.CurrencyId
             }
@@ -581,3 +624,18 @@ const remove = async (props: any) => {
     </template> -->
   </grid>
 </template>
+<style>
+th.k-header.customMenu > div > div > span.k-i-more-vertical::before,
+th.k-header.customMenu.active > div > div > span.k-i-more-vertical::before {
+  content: '\e129';
+}
+
+.k-columnmenu-item {
+  display: none;
+}
+
+th.k-header.active > div > a {
+  color: #fff;
+  background-color: #ff6358;
+}
+</style>

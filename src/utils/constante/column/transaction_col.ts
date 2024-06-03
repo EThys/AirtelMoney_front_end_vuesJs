@@ -7,8 +7,24 @@ export const Transactioncolumns = [
     resizable: true,
     cell: 'BrancheCell'
   },
-  { field: 'Number', title: 'Numéro', width: '130px', resizable: true, filter: 'text' },
-  { field: 'Amount', title: 'Amount', width: '185px', resizable: true, filter: 'numeric' },
+  {
+    field: 'Number',
+    title: 'Numéro',
+    width: '130px',
+    resizable: true,
+    filter: 'text',
+    columnMenu: 'myTemplate',
+    headerClassName: 'customMenu'
+  },
+  {
+    field: 'Amount',
+    title: 'Amount',
+    width: '185px',
+    resizable: true,
+    filter: 'numeric',
+    columnMenu: 'myTemplate',
+    headerClassName: 'customMenu'
+  },
   {
     field: 'user_type.UserTypeName',
     title: 'Type',
@@ -31,8 +47,7 @@ export const Transactioncolumns = [
     title: 'DateMovemented',
     width: '190px',
     editor: 'date',
-    resizable: true,
-    filter: 'text'
+    resizable: true
   },
   {
     field: 'Send',
