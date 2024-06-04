@@ -22,7 +22,7 @@ const name = 'Nav'
 </script>
 
 <template>
-  <nav class="bg-gray-800">
+  <nav class="bg-red-500" style="position: sticky; top: 0; z-index: 100">
     <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
       <div class="relative flex h-16 items-center justify-between">
         <div class="absolute inset-y-0 left-0 flex items-center sm:hidden"></div>
@@ -30,7 +30,7 @@ const name = 'Nav'
           <div class="flex flex-shrink-0 items-center">
             <ul>
               <li>
-                <router-link class="xl text-red-600 font-semibold" to="/currency/usd">
+                <router-link class="xl text-black font-semibold" to="/currency/usd">
                   Airtel Money
                 </router-link>
               </li>
@@ -49,7 +49,7 @@ const name = 'Nav'
           <p class="text-white">{{ user?.UserName }}</p>
           <button
             type="button"
-            class="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+            class="relative rounded-full bg-red-500 p-1 text-white-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-red-500"
           >
             {{ user?.user.UserName }}
           </button>
@@ -60,7 +60,7 @@ const name = 'Nav'
               <button
                 @click="toggleProfileMenu"
                 type="button"
-                class="relative flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                class="relative flex rounded-full bg-red-500 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-red-500"
                 id="user-menu-button"
                 aria-expanded="false"
                 aria-haspopup="true"
