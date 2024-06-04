@@ -119,11 +119,10 @@ const dropdownlist = DropDownList
 const itemChange = (e: any) => {
   const data = dataResult.value.data.slice()
   const index = data.findIndex((d) => d.TransactionId === e.dataItem.TransactionId)
-  console.log('deeeeeeeeeeeeeeeeeee', e.dataItem.TransactionId)
+  const originalValue = data[index][e.field]
   data[index] = { ...data[index], [e.field]: e.value }
   dataResult.value.data = data
   console.log('dataChange', data[index])
-  console.log('data', transactions.value.length)
 }
 
 const updated = async () => {
@@ -227,10 +226,14 @@ const updated = async () => {
   }
 }
 
+const editedItemsLocal = ref<Array<ITransaction>>([{}])
+
 const rowClick = (e: any) => {
-  //   this.editID = e.dataItem.ProductID;
-  e.dataItem.inEdit = true
+  e.transactions.inEdit = true
+  editedItemsLocal.value.push(e.dataItem)
+  console.log('editedItemsLocal', editedItemsLocal)
 }
+
 const cellClick = (e: any) => {
   if (e.dataItem.inEdit && e.field === editField.value) {
     return
@@ -238,6 +241,7 @@ const cellClick = (e: any) => {
   //exitEdit(e.dataItem, true);
   editField.value = e.field
   e.dataItem.inEdit = e.field
+  console.log('transaeditedItemsLocalctions (after cell click):', editedItemsLocal.value)
 }
 
 const filterChange = (ev: any) => {
@@ -449,12 +453,14 @@ const remove = async (props: any) => {
   <Nav />
 
   <grid
+    class="gridT"
     @pagechange="pageChangeHandler"
     :data-items="dataResult"
     :total="transactions.length"
     :columns="Transactioncolumns"
     :edit-field="'inEdit'"
     @cellclick="cellClick"
+    @rowClick="rowClick"
     @itemchange="itemChange"
     :filter="filter"
     @filteringChange="filteringChange"
@@ -469,7 +475,7 @@ const remove = async (props: any) => {
   >
     <grid-toolbar class="flex mb-2 pt-2">
       <kbutton
-        class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
+        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
         title="Add new"
         :theme-color="'primary'"
         @click="insert"
@@ -477,7 +483,7 @@ const remove = async (props: any) => {
         Add new
       </kbutton>
       <kbutton
-        class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
+        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
         title="Cancel"
         :theme-color="'primary'"
         @click="cancel"
@@ -485,7 +491,7 @@ const remove = async (props: any) => {
         Cancel
       </kbutton>
       <kbutton
-        class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
+        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
         title="Save"
         :theme-color="'primary'"
         @click="updated"
@@ -493,7 +499,7 @@ const remove = async (props: any) => {
         Save
       </kbutton>
       <kbutton
-        class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
+        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
         title="Reload"
         :theme-color="'primary'"
         @click="reload"
@@ -501,43 +507,100 @@ const remove = async (props: any) => {
         Reload
       </kbutton>
     </grid-toolbar>
-    <grid-norecords> There is no data available custom </grid-norecords>
+    <grid-norecords class="k-grid-no-records"> There is no data available custom </grid-norecords>
 
     <template v-slot:RemoveCell="{ props }">
-      <td lass="k-command-cell k-table-td">
-        <kbutton
+      <td class="k-command-cell k-table-td">
+        <button
           @click="openConfirm"
           class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
         >
-          Remove
-        </kbutton>
-        <Dialog
-          style="z-index: 1001"
-          class="mt-4"
+          <svg
+            class="h-6 w-6"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" />
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+          </svg>
+        </button>
+
+        <div
           v-if="isConfirmOpen"
-          @close="isConfirmOpen = false"
+          class="fixed z-10 inset-0 overflow-y-auto"
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
         >
-          <div class="grid-container">
-            <p class="text-center">Confirmer la suppression?</p>
+          <div
+            class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-5 transition-opacity"
+          ></div>
 
-            <DialogActionsBar>
-              <kbutton
-                class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
-                @click="isConfirmOpen = false"
-                >Annuler</kbutton
-              >
-
-              <kbutton
-                @click="remove(props)"
-                class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
-              >
-                Confirmer
-              </kbutton>
-            </DialogActionsBar>
+          <div
+            style="margin-left: 30%"
+            class="fixed top-10 left-10 w-full h-screen z-50 overflow-hidden transition-all sm:my-8 sm:w-full sm:max-w-lg"
+          >
+            <div
+              class="relative transform overflow-hidden rounded-lg bg-white p-4 text-left shadow-xl transition-all"
+            >
+              <div class="flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-900" id="modal-title">
+                  Confirm Delete?
+                </h3>
+                <button
+                  type="button"
+                  @click="isConfirmOpen = false"
+                  class="text-gray-400 focus:outline-none hover:text-gray-500"
+                >
+                  <svg
+                    class="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6 18L18 6M6 6l12 12"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="mt-4 text-base text-gray-500">
+                Are you sure you want to delete this item? This action is irreversible.
+              </div>
+              <div class="flex justify-end mt-4 space-x-2">
+                <button
+                  type="button"
+                  @click="isConfirmOpen = false"
+                  class="bg-gray-200 text-gray-500 rounded-md py-2 px-4 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  @click="remove(props)"
+                  class="bg-red-500 text-white rounded-md py-2 px-4 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
-        </Dialog>
+        </div>
       </td>
     </template>
+
     <template v-slot:myTemplate="{ props }">
       <custom
         :column="props.column"
@@ -629,7 +692,13 @@ th.k-header.customMenu > div > div > span.k-i-more-vertical::before,
 th.k-header.customMenu.active > div > div > span.k-i-more-vertical::before {
   content: '\e129';
 }
-
+.gridT {
+  height: 99vh;
+}
+.fullscreen {
+  height: 55vh;
+  width: 100vw;
+}
 .k-columnmenu-item {
   display: none;
 }
