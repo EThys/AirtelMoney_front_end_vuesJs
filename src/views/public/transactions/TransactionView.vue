@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/valid-attribute-name -->
 <script lang="ts" setup>
 //@ts-ignore
 import type { ITransaction } from '@/utils/interface/transaction/ITransaction'
@@ -32,18 +33,32 @@ import type { ICurrency } from '@/utils/interface/currency/ICurrency'
 //@ts-ignore
 import type { IUserType } from '@/utils/interface/userType/IUserType'
 //@ts-ignore
+import type { IPhoneType } from '@/utils/interface/phoneType/phoneType'
 import { useAxiosRequestWithToken } from '@/utils/service/axios_api'
 //@ts-ignore
 import { ApiRoutes } from '@/utils/service/endpoint/api'
 //@ts-ignore
 import { IToken } from '@/utils/interface/token'
 import { Dialog, DialogActionsBar } from '@progress/kendo-vue-dialogs'
+import { getUser } from '@/stores/user'
 //@ts-ignore
 import DropDownCell from './DropdownCell.vue'
 import { useToast } from 'vue-toast-notification'
 //@ts-ignore
 import ColumnMenu from './ColumnMenuView.vue'
 import { DatePicker } from '@progress/kendo-vue-dateinputs'
+
+//@ts-ignore
+import {
+  setTransaction,
+  setBranche,
+  setCurrency,
+  setUserType,
+  getBranches,
+  getCurrencies,
+  getTransactions,
+  getUserType
+} from '@/stores/transactions'
 
 //@ts-ignore
 import AddTransactionModalView from './AddTransactionModalView.vue'
@@ -58,12 +73,15 @@ const openModal = () => {
 const datepicker = DatePicker
 const branches = ref<Array<IBranche>>({})
 const userTypes = ref<Array<IUserType>>([{}])
+const phoneTypes = ref<Array<IPhoneType>>([{}])
 const currencies = ref<Array<ICurrency>>([{}])
+const currencyOption = ref<Array<ICurrency>>([{}])
 const closeModal = () => {
   isModalOpen.value = false
 }
 
 const loader = ref<Boolean>(false)
+const user = getUser()
 const show = ref<any>(false)
 show.value = show.value ? false : 'loader'
 const route = useRoute()
@@ -134,17 +152,14 @@ const updated = async () => {
   )
   console.log('newItems', newItems)
 
-  const updatedItems = editedItems.filter((item) => item.TransactionId)
+  const updatedItems = editedItems.filter((item) => !item.isNew && item.TransactionId)
 
   try {
+    const promises = []
+
     // Envoyer les nouveaux éléments en POST
     if (newItems.length > 0) {
-      // Mapper les objets dans un tableau
-      const itemsArray = newItems.map((item) => {
-        return item
-      })
-
-      for (const item of newItems) {
+      const newItemsPromises = newItems.map(async (item) => {
         const filteredData = {
           CurrencyFId: item.CurrencyFId,
           BrancheFId: item.BrancheFId,
@@ -179,17 +194,14 @@ const updated = async () => {
             position: 'top-right',
             duration: 1000
           })
+          item.TransactionId = response.data.TransactionId
         }
-
-        console.log('newItemsYasika', body)
-        await get_transaction()
-      }
+      })
+      promises.push(...newItemsPromises)
     }
-
     // Mettre à jour les éléments existants en PUT
     if (updatedItems.length > 0) {
-      console.log('updatedItems', updatedItems)
-      for (const item of updatedItems) {
+      const updatedItemsPromises = updatedItems.map(async (item) => {
         const response = await useAxiosRequestWithToken(token).put(
           `${ApiRoutes.updateTransaction}/${item.TransactionId}`,
           item
@@ -214,11 +226,46 @@ const updated = async () => {
             duration: 1000
           })
         }
-      }
-      await get_transaction()
+      })
+      promises.push(...updatedItemsPromises)
     }
 
-    // // Rafraîchir les données après les mises à jour
+    // Supprimer les éléments
+    if (deletedTransactions.value.length > 0) {
+      const deleteItemsPromises = deletedTransactions.value.map(async (item) => {
+        const response = await useAxiosRequestWithToken(token).delete(
+          `${ApiRoutes.deleteTransaction}/${item.TransactionId}`
+        )
+        const index = transactions.value.findIndex((i) => i.TransactionId === item.TransactionId)
+        if (index > -1) {
+          transactions.value.splice(index, 1)
+        }
+        return response
+      })
+
+      const deleteResponses = await Promise.all(deleteItemsPromises)
+      const deleteErrors = deleteResponses.filter((response) => response.data.error)
+      if (deleteErrors.length) {
+        const errorMessages = deleteErrors.map((error) => error.data.error).join('\n')
+        $toast.open({
+          message: errorMessages,
+          type: 'error',
+          position: 'top-right',
+          duration: 1000
+        })
+        throw new Error(errorMessages)
+      } else {
+        $toast.open({
+          message: 'Items supprimés avec succès',
+          type: 'success'
+        })
+      }
+      deletedTransactions.value = []
+    }
+
+    // Attendre que toutes les opérations soient terminées avant de rafraîchir les données
+    await Promise.all(promises)
+    await get_transaction()
   } catch (error) {
     console.log(error)
   } finally {
@@ -228,10 +275,14 @@ const updated = async () => {
 
 const editedItemsLocal = ref<Array<ITransaction>>([{}])
 
+const addedTransactions = ref<Array<ITransaction>>([])
+const updatedTransactions = ref<Array<ITransaction>>([])
+const deletedTransactions = ref<Array<ITransaction>>([])
+
 const rowClick = (e: any) => {
   e.transactions.inEdit = true
   editedItemsLocal.value.push(e.dataItem)
-  console.log('editedItemsLocal', editedItemsLocal)
+  console.log('editedItemsLocal', editedItemsLocal.value)
 }
 
 const cellClick = (e: any) => {
@@ -241,7 +292,6 @@ const cellClick = (e: any) => {
   //exitEdit(e.dataItem, true);
   editField.value = e.field
   e.dataItem.inEdit = e.field
-  console.log('transaeditedItemsLocalctions (after cell click):', editedItemsLocal.value)
 }
 
 const filterChange = (ev: any) => {
@@ -262,26 +312,43 @@ const dataState: State = {
   sort: sort.value
 }
 
-const get_transaction = () => {
+const get_transaction = async () => {
   const currency = route.params.currency
   useAxiosRequestWithToken(token)
     .get(`${ApiRoutes.transactionList}${currency}`)
     .then(function (response) {
       //success
       transactions.value = response.data.transactions as Array<ITransaction>
+      setTransaction(transactions.value as ITransaction)
       dataResult.value = process(transactions.value, dataState)
     })
     .catch(function (error) {
       //error
     })
+  // // Appeler la fonction au montage du composant
+  // get_transaction()
+
+  // Surveiller les changements de route
 }
 
 const isLoaded = ref(false)
 
 const reload = async () => {
+  const localTransactions = getTransactions()
+  const localBranches = getBranches()
+  const localCurrencies = getCurrencies()
+  const localUserTypes = getUserType()
+  // if (localTransactions) {
+  //   transactions.value = localTransactions
+  //   branches.value = localBranches
+  //   currencies.value = localCurrencies
+  //   userTypes.value = localUserTypes
+  //   isLoaded.value = true
+  // } else {
   await get_transaction()
   await get_currencies()
   await get_branches()
+  await get_phoneTypes()
   await get_userTypes()
   isLoaded.value = true
 }
@@ -311,7 +378,9 @@ const insert = () => {
     DateMovemented: '',
     UserTypeFId: '',
     FromBranchId: '',
-    inEdit: true
+    inEdit: true,
+    status: 'added',
+    isNew: true
   }
   const newtransactions = [...data]
   newtransactions.unshift(dataItem as any)
@@ -319,7 +388,90 @@ const insert = () => {
   dataResult.value.data = newtransactions
 }
 
-const cancel = () => {
+const editedItems = ref([])
+const updateInEdit = (item) => {
+  item.inEdit = true
+}
+
+const edit = () => {
+  // Filtrer les éléments modifiés
+  const editedItemsTemp = dataResult.value.data.filter((item) => item.inEdit)
+
+  // Traiter les éléments ajoutés
+  editedItemsTemp.forEach((item) => {
+    if (item.TransactionId) {
+      // Mettre à jour le statut de l'élément et le traiter comme une modification
+      item.status = 'edited'
+
+      // Vérifier si l'élément existe déjà dans updatedTransactions
+      const existingItem = updatedTransactions.value.find(
+        (i) => i.TransactionId === item.TransactionId
+      )
+
+      if (!existingItem) {
+        // Ajouter l'élément aux tableaux updatedTransactions et editedItems
+        updatedTransactions.value.push(item)
+        editedItems.value.push(item)
+      } else {
+        // L'élément existe déjà, donc on le met à jour dans updatedTransactions
+        const existingItemIndex = updatedTransactions.value.findIndex(
+          (i) => i.TransactionId === item.TransactionId
+        )
+        updatedTransactions.value.splice(existingItemIndex, 1, item)
+        editedItems.value.splice(editedItems.value.indexOf(item), 1)
+      }
+    }
+    if (item.TransactionId.toString().startsWith('tmp_')) {
+      // Ajouter l'élément aux tableaux addedTransactions et editedItems
+      addedTransactions.value.push(item)
+      editedItems.value.push(item)
+      item.status = 'new'
+    }
+  })
+
+  // Afficher les transactions mises à jour
+}
+
+const deletedLocal = (props: any) => {
+  const dataItem = props.dataItem
+  dataItem.status = 'delete'
+
+  console.log(dataItem)
+
+  deletedTransactions.value.push(dataItem)
+  editedItems.value.splice(editedItems.value.indexOf(dataItem), 1)
+
+  const deleteItems = dataResult.value.data.filter((item) => item.status === 'delete')
+  isConfirmOpen.value = false
+  console.log('Éléments supprimés:', deleteItems)
+
+  console.log('Éléments supprimés:', deletedTransactions.value)
+
+  // Boucle sur les éléments supprimés
+  deletedTransactions.value.forEach((deletedItem) => {
+    console.log('Élément supprimé:', deletedItem)
+  })
+}
+
+// Ajouter une fonction pour sauvegarder les modifications
+const saveChanges = () => {
+  const editedItemss = ref([])
+  // Mise à jour de dataResult avec les éléments édités
+  dataResult.value.data = [...dataResult.value.data, ...editedItemss.value]
+  editedItemss.value = []
+
+  // Séparer les éléments en nouveaux, modifiés et existants
+  const newItems = dataResult.value.data.filter((item) => item.status === 'new')
+  const editedItems = dataResult.value.data.filter((item) => item.status === 'edited')
+  const existingItems = dataResult.value.data.filter((item) => item.status === undefined)
+
+  console.log('Nouveaux éléments:', newItems)
+  console.log('Éléments modifiés:', editedItems)
+  console.log('Éléments existants:', existingItems)
+  console.log('updatedTransactions', updatedTransactions.value)
+}
+
+const cancel = async () => {
   // Récupérer les éléments en édition
   let editedItems = dataResult.value.data.filter((item) => item.inEdit)
 
@@ -328,9 +480,11 @@ const cancel = () => {
     // Parcourir les éléments
     editedItems.forEach((item) => {
       // Vérifier si TransactionId est null (nouvel ajout)
-      if (item.TransactionId.startsWith('tmp_')) {
+      if (typeof item.TransactionId === 'string') {
         // Supprimer l'élément du tableau
         const index = dataResult.value.data.findIndex((t) => t === item)
+        const indexLocal = addedTransactions.value.findIndex((t) => t === item)
+        addedTransactions.value.splice(indexLocal, 1)
         dataResult.value.data.splice(index, 1)
       } else {
         // Sinon mettre fin à l'édition
@@ -340,6 +494,9 @@ const cancel = () => {
   }
   // Mettre à jour le state
   dataResult.value.data = [...dataResult.value.data]
+  deletedTransactions.value = []
+  updatedTransactions.value = []
+  await get_transaction()
 }
 const get_branches = () => {
   useAxiosRequestWithToken(token)
@@ -347,7 +504,21 @@ const get_branches = () => {
     .then(function (response) {
       //success
       branches.value = response.data.branches as Array<IBranche>
+      setBranche(branches.value as any)
       console.log('branches', branches.value)
+    })
+    .catch(function (error) {
+      //error
+    })
+}
+
+const get_phoneTypes = () => {
+  useAxiosRequestWithToken(token)
+    .get(`${ApiRoutes.phoneType}`)
+    .then(function (response) {
+      //success
+      phoneTypes.value = response.data.phoneTypes as Array<IPhoneType>
+      console.log('phoneTypes', phoneTypes.value)
     })
     .catch(function (error) {
       //error
@@ -360,24 +531,37 @@ const get_userTypes = () => {
     .then(function (response) {
       //success
       userTypes.value = response.data.user_type as Array<IUserType>
+      setUserType(userTypes.value as any)
       console.log('ddededee', userTypes.value)
     })
     .catch(function (error) {
       //error
     })
 }
-const get_currencies = () => {
+const get_currencies = async () => {
+  const currencyFromRoute = route.params.currency
+  const currencyRoute = currencyFromRoute.toUpperCase()
   useAxiosRequestWithToken(token)
     .get(`${ApiRoutes.currencies}`)
     .then(function (response) {
       //success
       currencies.value = response.data.currencies as Array<ICurrency>
-      console.log(currencies.value)
+      setCurrency(currencies.value as any)
+      currencyOption.value = currencies.value.filter(
+        (currency) => currency.CurrencyCode === currencyRoute
+      )
+      console.log(currencyOption)
     })
     .catch(function (error) {
       //error
     })
 }
+
+// Surveiller les changements de route
+
+// watchEffect(async () => {
+//   route.params.currency, await get_transaction()
+// })
 
 const createAppState = (dataState: State) => {
   take.value = dataState.take
@@ -448,6 +632,50 @@ const remove = async (props: any) => {
     loader.value = false
   }
 }
+
+const cellFunction = (h: any, trElement: any, defaultSlots: any, props: any) => {
+  const dataItem = props.dataItem
+
+  let backgroundColor
+
+  if (dataItem.status === 'new') {
+    backgroundColor = 'rgb(55, 180, 0, 0.32)' // vert
+  } else if (dataItem.status === 'edited') {
+    backgroundColor = 'rgb(255, 215, 0, 0.32)' // jaune
+  } else if (dataItem.status === 'delete') {
+    backgroundColor = 'rgba(255, 100, 100, 0.32)' // Rouge
+  }
+
+  const trProps = {
+    style: {
+      backgroundColor
+    }
+  }
+
+  return h('tr', trProps, defaultSlots)
+}
+
+const updateSentStatus = (dataItem: any) => {
+  dataItem.Sent = 1
+  dataItem.status = 'edited'
+  dataItem.inEdit = true
+}
+const setUserTypeFromPhone = (event: any, dataItem: any) => {
+  const phoneNumber = event.target.value
+  const userTypeByPhone = phoneTypes.value.find((type) => {
+    return type.PhoneNumber === phoneNumber
+  })
+  if (userTypeByPhone) {
+    dataItem['user_type'] = userTypeByPhone.user_type
+    dataItem['UserTypeFId'] = userTypeByPhone.user_type.UserTypeId
+
+    itemChange({
+      dataItem: dataItem,
+      field: 'user_type.UserTypeName',
+      value: userTypeByPhone.user_type
+    })
+  }
+}
 </script>
 <template>
   <Nav />
@@ -457,8 +685,10 @@ const remove = async (props: any) => {
     @pagechange="pageChangeHandler"
     :data-items="dataResult"
     :total="transactions.length"
+    :row-render="cellFunction"
     :columns="Transactioncolumns"
     :edit-field="'inEdit'"
+    @change="edit"
     @cellclick="cellClick"
     @rowClick="rowClick"
     @itemchange="itemChange"
@@ -471,7 +701,6 @@ const remove = async (props: any) => {
     :sort="sort"
     :take="take"
     :skip="skip"
-    :editable="{ createAt: 'bottom' }"
   >
     <grid-toolbar class="flex mb-2 pt-2">
       <kbutton
@@ -494,7 +723,7 @@ const remove = async (props: any) => {
         class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
         title="Save"
         :theme-color="'primary'"
-        @click="updated"
+        @click="updated()"
       >
         Save
       </kbutton>
@@ -512,8 +741,8 @@ const remove = async (props: any) => {
     <template v-slot:RemoveCell="{ props }">
       <td class="k-command-cell k-table-td">
         <button
-          @click="openConfirm"
-          class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer"
+          @click="deletedLocal(props)"
+          class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer"
         >
           <svg
             class="h-6 w-6"
@@ -589,7 +818,7 @@ const remove = async (props: any) => {
                 </button>
                 <button
                   type="button"
-                  @click="remove(props)"
+                  @click="deletedLocal(props)"
                   class="bg-red-500 text-white rounded-md py-2 px-4 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Delete
@@ -618,24 +847,82 @@ const remove = async (props: any) => {
 
     <template v-slot:BrancheCell="{ props }" v-if="branches.length > 0">
       <td>
-        <dropdownlist
-          :data-items="branches"
-          :field="props.field"
-          :data-item-key="'BrancheId'"
-          :text-field="'BrancheName'"
-          :style="{ width: '155px' }"
-          :value="props.dataItem['branche']"
-          @itemchange="itemChange"
+        <span v-if="user?.user.Admin == 1">
+          <dropdownlist
+            :data-items="[user?.user.branche]"
+            :field="props.field"
+            :data-item-key="'BrancheId'"
+            :text-field="'BrancheName'"
+            :style="{ width: '155px' }"
+            :value="props.dataItem['branche']"
+            @change="
+              (event: { value: { BrancheId: any } }) => {
+                props.dataItem['BrancheFId'] = event.value.BrancheId
+                props.dataItem['FromBranchId'] = event.value.BrancheId
+                updateInEdit(props.dataItem)
+                // props.dataItem.inEdit = true
+                props.dataItem.status = 'edited'
+                itemChange({
+                  dataItem: props.dataItem,
+                  field: 'branche.BrancheName',
+                  value: props.dataItem.BrancheFId
+                })
+              }
+            "
+            @reload="reload"
+          ></dropdownlist>
+        </span>
+        <span v-else>
+          <dropdownlist
+            :data-items="branches"
+            :field="props.field"
+            :data-item-key="'BrancheId'"
+            :text-field="'BrancheName'"
+            :style="{ width: '155px' }"
+            :value="props.dataItem['branche']"
+            @itemchange="itemChange"
+            @change="
+              (event: { value: { BrancheId: any } }) => {
+                props.dataItem['branche'] = event.value
+                props.dataItem['BrancheFId'] = event.value.BrancheId
+                props.dataItem['FromBranchId'] = event.value.BrancheId
+                props.dataItem.user['BrancheFId'] = event.value.BrancheId
+                updateInEdit(props.dataItem)
+                // props.dataItem.inEdit = true
+                props.dataItem.status = 'edited'
+                itemChange({
+                  dataItem: props.dataItem,
+                  field: 'branche.BrancheName',
+                  value: props.dataItem.BrancheFId
+                })
+              }
+            "
+            @reload="reload"
+          ></dropdownlist>
+        </span>
+      </td>
+    </template>
+    <template v-slot:NumberCell="{ props }">
+      <span>
+        <input
+          v-model="props.dataItem.Number"
           @change="
-            (event: { value: { BrancheId: any } }) => {
-              props.dataItem['branche'] = event.value
-              props.dataItem['BrancheFId'] = event.value.BrancheId
-              props.dataItem['FromBranchId'] = event.value.BrancheId
+            (event) => {
+              setUserTypeFromPhone(event, props.dataItem),
+                updateInEdit(props.dataItem),
+                (props.dataItem.status = 'edited')
             }
           "
-          @reload="reload"
-        ></dropdownlist>
-      </td>
+          style="
+            width: 90%;
+            margin-top: 5%;
+            margin-left: 5%;
+            padding: 4px;
+            border-radius: 5px;
+            font-size: 16px;
+          "
+        />
+      </span>
     </template>
     <template v-slot:TypeCell="{ props }" v-if="branches.length > 0">
       <td>
@@ -649,6 +936,13 @@ const remove = async (props: any) => {
             (event: { value: { UserTypeId: any } }) => {
               props.dataItem['user_type'] = event.value
               props.dataItem['UserTypeFId'] = event.value.UserTypeId
+              // props.dataItem.inEdit = true
+              // props.dataItem.status = 'edited'
+              itemChange({
+                dataItem: props.dataItem,
+                field: 'user_type.UserTypeName',
+                value: event.value
+              })
             }
           "
           :style="{ width: '155px' }"
@@ -659,7 +953,7 @@ const remove = async (props: any) => {
     <template v-slot:CurrencyCell="{ props }" v-if="branches.length > 0">
       <td>
         <dropdownlist
-          :data-items="currencies"
+          :data-items="currencyOption"
           :field="props.field"
           :data-item-key="'CurrencyId'"
           :value="props.dataItem['currency']"
@@ -668,6 +962,13 @@ const remove = async (props: any) => {
             (event: { value: { CurrencyId: any } }) => {
               props.dataItem['currency'] = event.value
               props.dataItem['CurrencyFId'] = event.value.CurrencyId
+              // props.dataItem.inEdit = true
+              // props.dataItem.status = 'edited'
+              itemChange({
+                dataItem: props.dataItem,
+                field: 'currency.CurrencyCode',
+                value: props.dataItem.CurrencyFId
+              })
             }
           "
           :style="{ width: '155px' }"
@@ -677,8 +978,120 @@ const remove = async (props: any) => {
       </td>
     </template>
     <template v-slot:SendCell="{ props }">
+      <td class="k-command-cell k-table-td cursor-pointer">
+        <template v-if="user?.user.Admin == 0">
+          <span
+            @dblclick="updateSentStatus(props.dataItem)"
+            :class="{
+              clickable: true,
+              'flex items-center space-x-2': true,
+              'text-green-600 font-semibold': props.dataItem.Sent == 1,
+              'text-red-600 font-semibold': props.dataItem.Sent == 0
+            }"
+          >
+            {{ props.dataItem.Sent == 1 ? 'Yes' : 'No' }}
+            <svg
+              v-if="props.dataItem.Sent == 1"
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon icon-tabler icon-tabler-check"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M5 12l5 5l10 -10" />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon icon-tabler icon-tabler-x"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M18 6l-12 12" />
+              <path d="M6 6l12 12" />
+            </svg>
+          </span>
+        </template>
+        <template v-else>
+          <span
+            :class="{
+              clickable: false,
+              'flex items-center space-x-2': true,
+              'text-green-600 font-semibold': props.dataItem.Sent == 1,
+              'text-red-600 font-semibold': props.dataItem.Sent == 0
+            }"
+          >
+            {{ props.dataItem.Sent == 1 ? 'Yes' : 'No' }}
+            <svg
+              v-if="props.dataItem.Sent == 1"
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon icon-tabler icon-tabler-check"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M5 12l5 5l10 -10" />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon icon-tabler icon-tabler-x"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M18 6l-12 12" />
+              <path d="M6 6l12 12" />
+            </svg>
+          </span>
+        </template>
+      </td>
+    </template>
+    <template v-slot:ResponceCell="{ props }">
       <td class="k-command-cell k-table-td">
-        {{ props.dataItem['Send'] == 0 ? 'No' : 'Yes' }}
+        <template v-if="user?.user.Admin == 0">
+          <input
+            type="text"
+            v-model="props.dataItem.Response"
+            @change="updateInEdit(props.dataItem)"
+            style="
+              width: 100%;
+              padding: 4px;
+
+              border-radius: 5px;
+              font-size: 16px;
+            "
+            :required="true"
+          />
+        </template>
+        <template v-else>
+          <span>{{ props.dataItem.Response }}</span>
+        </template>
       </td>
     </template>
 
