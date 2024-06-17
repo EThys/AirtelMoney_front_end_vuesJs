@@ -1,3 +1,5 @@
+import type { IBranche } from '@/utils/interface/branche/IBranche'
+
 // import type {IUserType} from '@/utils/interface/'
 export interface ITransaction {
   TransactionId?: BigInt
@@ -13,6 +15,7 @@ export interface ITransaction {
   Send?: string
   DateCreated?: string
   DateMovemented?: string
+  branche: IBranche
 }
 
 /*

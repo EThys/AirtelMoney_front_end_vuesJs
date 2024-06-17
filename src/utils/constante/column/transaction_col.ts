@@ -13,17 +13,14 @@ export const Transactioncolumns = [
     width: '130px',
     resizable: true,
     filter: 'text',
-    columnMenu: 'myTemplate',
-    headerClassName: 'customMenu'
+    cell: 'NumberCell'
   },
   {
     field: 'Amount',
     title: 'Amount',
     width: '185px',
     resizable: true,
-    filter: 'numeric',
-    columnMenu: 'myTemplate',
-    headerClassName: 'customMenu'
+    filter: 'numeric'
   },
   {
     field: 'user_type.UserTypeName',
@@ -46,17 +43,16 @@ export const Transactioncolumns = [
     field: 'DateMovemented',
     title: 'DateMovemented',
     width: '190px',
-    editor: 'date',
-    resizable: true
-  },
-  {
-    field: 'Send',
-    title: 'Send',
-    width: '115px',
-    cell: 'SendCell',
     editable: false,
     resizable: true
   },
-  { field: 'Response', title: 'Response', width: '115x', editable: false, resizable: true },
+  {
+    field: 'Sent',
+    title: 'Sent',
+    width: '115px',
+    cell: 'SendCell',
+    resizable: true
+  },
+  { field: 'Response', title: 'Response', width: '115x', resizable: true, cell: 'ResponceCell' },
   { field: 'Remove', title: 'Remove', width: '120px', resizable: true, cell: 'RemoveCell' }
 ]
