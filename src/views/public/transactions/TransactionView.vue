@@ -2,13 +2,13 @@
 <script lang="ts" setup>
 //@ts-ignore
 import type { ITransaction } from '@/utils/interface/transaction/ITransaction'
-//@ts-ignor
+//@ts-ignore
 import {
   Grid,
   filterGroupByField,
   GridToolbar,
   GridNoRecords,
-  GridDataStateChangeEvent
+  type GridDataStateChangeEvent
 } from '@progress/kendo-vue-grid'
 //@ts-ignore
 import Nav from '@/components/Nav.vue'
@@ -17,13 +17,13 @@ import {
   filterBy,
   type CompositeFilterDescriptor,
   type SortDescriptor,
-  State,
-  DataResult
+  type State,
+  type DataResult
 } from '@progress/kendo-data-query'
 //@ts-ignore
 import { getToken } from '@/stores/token'
 import { AutoComplete, ComboBox, DropDownList } from '@progress/kendo-vue-dropdowns'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, ref, watchEffect, watch } from 'vue'
 //@ts-ignore
 import { Transactioncolumns } from '@/utils/constante/column/transaction_col'
 //@ts-ignore
@@ -34,18 +34,19 @@ import type { ICurrency } from '@/utils/interface/currency/ICurrency'
 import type { IUserType } from '@/utils/interface/userType/IUserType'
 //@ts-ignore
 import type { IPhoneType } from '@/utils/interface/phoneType/phoneType'
+//@ts-ignore
 import { useAxiosRequestWithToken } from '@/utils/service/axios_api'
 //@ts-ignore
 import { ApiRoutes } from '@/utils/service/endpoint/api'
 //@ts-ignore
 import { IToken } from '@/utils/interface/token'
 import { Dialog, DialogActionsBar } from '@progress/kendo-vue-dialogs'
+//@ts-ignore
 import { getUser } from '@/stores/user'
 //@ts-ignore
 import DropDownCell from './DropdownCell.vue'
 import { useToast } from 'vue-toast-notification'
 //@ts-ignore
-import ColumnMenu from './ColumnMenuView.vue'
 import { DatePicker } from '@progress/kendo-vue-dateinputs'
 
 //@ts-ignore
@@ -57,28 +58,27 @@ import {
   getBranches,
   getCurrencies,
   getTransactions,
-  getUserType
+  getUserType //@ts-ignore
 } from '@/stores/transactions'
 
 //@ts-ignore
-import AddTransactionModalView from './AddTransactionModalView.vue'
 import { useRoute } from 'vue-router'
-const ddcell = DropDownCell
+// const ddcell = DropDownCell
 const isConfirmOpen = ref(false)
-const isModalOpen = ref(false)
+// const isModalOpen = ref(false)
 const $toast = useToast()
-const openModal = () => {
-  isModalOpen.value = true
-}
-const datepicker = DatePicker
-const branches = ref<Array<IBranche>>({})
-const userTypes = ref<Array<IUserType>>([{}])
-const phoneTypes = ref<Array<IPhoneType>>([{}])
-const currencies = ref<Array<ICurrency>>([{}])
-const currencyOption = ref<Array<ICurrency>>([{}])
-const closeModal = () => {
-  isModalOpen.value = false
-}
+// const openModal = () => {
+//   isModalOpen.value = true
+// }
+// const datepicker = DatePicker
+const branches = ref<Array<IBranche>>([{} as IBranche])
+const userTypes = ref<Array<IUserType>>([{} as IUserType])
+const phoneTypes = ref<Array<IPhoneType>>([{} as IPhoneType])
+const currencies = ref<Array<ICurrency>>([{} as ICurrency])
+const currencyOption = ref<Array<ICurrency>>([{} as ICurrency])
+// const closeModal = () => {
+//   isModalOpen.value = false
+// }
 
 const loader = ref<Boolean>(false)
 const user = getUser()
@@ -87,7 +87,7 @@ show.value = show.value ? false : 'loader'
 const route = useRoute()
 const showLoad = ref<Boolean>(false)
 const sortable = ref(true)
-const transactions = ref<Array<ITransaction>>([{}])
+const transactions = ref<Array<ITransaction>>([{} as ITransaction])
 const dataResult = ref<DataResult>({ data: [] as any, total: 0 })
 const skip = ref<number | undefined>(0)
 const token = getToken() as string
@@ -273,7 +273,7 @@ const updated = async () => {
   }
 }
 
-const editedItemsLocal = ref<Array<ITransaction>>([{}])
+const editedItemsLocal = ref<Array<ITransaction>>([])
 
 const addedTransactions = ref<Array<ITransaction>>([])
 const updatedTransactions = ref<Array<ITransaction>>([])
@@ -319,16 +319,12 @@ const get_transaction = async () => {
     .then(function (response) {
       //success
       transactions.value = response.data.transactions as Array<ITransaction>
-      setTransaction(transactions.value as ITransaction)
+      //setTransaction(transactions.value as ITransaction)
       dataResult.value = process(transactions.value, dataState)
     })
     .catch(function (error) {
       //error
     })
-  // // Appeler la fonction au montage du composant
-  // get_transaction()
-
-  // Surveiller les changements de route
 }
 
 const isLoaded = ref(false)
@@ -358,7 +354,14 @@ watchEffect(async () => {
     await get_transaction()
   }
 })
-
+watch(
+  () => route.params.currency,
+  async (newCurrency: any, oldCurrency: any) => {
+    if (newCurrency !== oldCurrency) {
+      await get_currencies()
+    }
+  }
+)
 const insert = () => {
   const generateUniqueId = () => {
     return 'tmp_' + Date.now().toString(16)
@@ -388,8 +391,8 @@ const insert = () => {
   dataResult.value.data = newtransactions
 }
 
-const editedItems = ref([])
-const updateInEdit = (item) => {
+const editedItems = ref<Array<any>>([])
+const updateInEdit = (item: any) => {
   item.inEdit = true
 }
 
@@ -539,7 +542,7 @@ const get_userTypes = () => {
     })
 }
 const get_currencies = async () => {
-  const currencyFromRoute = route.params.currency
+  const currencyFromRoute = route.params.currency.toString()
   const currencyRoute = currencyFromRoute.toUpperCase()
   useAxiosRequestWithToken(token)
     .get(`${ApiRoutes.currencies}`)
@@ -556,12 +559,6 @@ const get_currencies = async () => {
       //error
     })
 }
-
-// Surveiller les changements de route
-
-// watchEffect(async () => {
-//   route.params.currency, await get_transaction()
-// })
 
 const createAppState = (dataState: State) => {
   take.value = dataState.take
@@ -675,6 +672,19 @@ const setUserTypeFromPhone = (event: any, dataItem: any) => {
       value: userTypeByPhone.user_type
     })
   }
+}
+
+const brancheEvent = (event: any, props: any) => {
+  props.dataItem['BrancheFId'] = event.value.BrancheId
+  props.dataItem['FromBranchId'] = event.value.BrancheId
+  updateInEdit(props.dataItem)
+  // props.dataItem.inEdit = true;
+  props.dataItem.status = 'edited'
+  itemChange({
+    dataItem: props.dataItem,
+    field: 'branche.BrancheName',
+    value: props.dataItem.BrancheFId
+  })
 }
 </script>
 <template>
@@ -856,9 +866,9 @@ const setUserTypeFromPhone = (event: any, dataItem: any) => {
             :style="{ width: '155px' }"
             :value="props.dataItem['branche']"
             @change="
-              (event: { value: { BrancheId: any } }) => {
-                props.dataItem['BrancheFId'] = event.value.BrancheId
-                props.dataItem['FromBranchId'] = event.value.BrancheId
+              (event = { value: { BrancheId: 1 } }) => {
+                props.dataItem['BrancheFId'] = event?.value.BrancheId
+                props.dataItem['FromBranchId'] = event?.value.BrancheId
                 updateInEdit(props.dataItem)
                 // props.dataItem.inEdit = true
                 props.dataItem.status = 'edited'
@@ -882,11 +892,11 @@ const setUserTypeFromPhone = (event: any, dataItem: any) => {
             :value="props.dataItem['branche']"
             @itemchange="itemChange"
             @change="
-              (event: { value: { BrancheId: any } }) => {
-                props.dataItem['branche'] = event.value
-                props.dataItem['BrancheFId'] = event.value.BrancheId
-                props.dataItem['FromBranchId'] = event.value.BrancheId
-                props.dataItem.user['BrancheFId'] = event.value.BrancheId
+              (event = { value: { BrancheId: 1 } }) => {
+                props.dataItem['branche'] = event?.value
+                props.dataItem['BrancheFId'] = event?.value.BrancheId
+                props.dataItem['FromBranchId'] = event?.value.BrancheId
+                props.dataItem.user['BrancheFId'] = event?.value.BrancheId
                 updateInEdit(props.dataItem)
                 // props.dataItem.inEdit = true
                 props.dataItem.status = 'edited'
@@ -933,15 +943,15 @@ const setUserTypeFromPhone = (event: any, dataItem: any) => {
           :value="props.dataItem['user_type']"
           :text-field="'UserTypeName'"
           @change="
-            (event: { value: { UserTypeId: any } }) => {
-              props.dataItem['user_type'] = event.value
-              props.dataItem['UserTypeFId'] = event.value.UserTypeId
+            (event = { value: { UserTypeId: 1 } }) => {
+              props.dataItem['user_type'] = event?.value
+              props.dataItem['UserTypeFId'] = event?.value.UserTypeId
               // props.dataItem.inEdit = true
               // props.dataItem.status = 'edited'
               itemChange({
                 dataItem: props.dataItem,
                 field: 'user_type.UserTypeName',
-                value: event.value
+                value: event?.value
               })
             }
           "
@@ -959,8 +969,8 @@ const setUserTypeFromPhone = (event: any, dataItem: any) => {
           :value="props.dataItem['currency']"
           :text-field="'CurrencyCode'"
           @change="
-            (event: { value: { CurrencyId: any } }) => {
-              props.dataItem['currency'] = event.value
+            (event = { value: { CurrencyId: 1 } }) => {
+              props.dataItem['currency'] = event?.value
               props.dataItem['CurrencyFId'] = event.value.CurrencyId
               // props.dataItem.inEdit = true
               // props.dataItem.status = 'edited'
