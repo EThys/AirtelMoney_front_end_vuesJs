@@ -7,7 +7,7 @@ export const useAxiosRequestWithToken = (token: string = ''): AxiosInstance => {
       accept: 'application/json',
       'Content-type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'http://213.136.74.84:800',
       Authorization: `Bearer ${token}`
     }
   })
