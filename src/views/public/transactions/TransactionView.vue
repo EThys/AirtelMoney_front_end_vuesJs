@@ -64,23 +64,13 @@ import {
 
 //@ts-ignore
 import { useRoute } from 'vue-router'
-// const ddcell = DropDownCell
 const isConfirmOpen = ref(false)
-// const isModalOpen = ref(false)
 const $toast = useToast()
-// const openModal = () => {
-//   isModalOpen.value = true
-// }
-// const datepicker = DatePicker
 const branches = ref<Array<IBranche>>([{} as IBranche])
 const userTypes = ref<Array<IUserType>>([{} as IUserType])
 const phoneTypes = ref<Array<IPhoneType>>([{} as IPhoneType])
 const currencies = ref<Array<ICurrency>>([{} as ICurrency])
 const currencyOption = ref<Array<ICurrency>>([{} as ICurrency])
-// const closeModal = () => {
-//   isModalOpen.value = false
-// }
-
 const loader = ref<Boolean>(false)
 const user = getUser()
 const show = ref<any>(false)
