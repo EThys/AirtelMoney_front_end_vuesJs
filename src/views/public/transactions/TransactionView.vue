@@ -58,8 +58,8 @@ import {
   getBranches,
   getCurrencies,
   getTransactions,
-  getUserType, //@ts-ignore
-  setPhoneType
+  getUserType,
+  setPhoneType //@ts-ignore
 } from '@/stores/transactions'
 
 //@ts-ignore
