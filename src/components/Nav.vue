@@ -3,8 +3,16 @@
 import { clearUser, getUser } from '@/stores/user'
 //@ts-ignore
 import { clearToken } from '@/stores/token'
+import {
+  clearBranche,
+  clearCurrency,
+  clearPhoneType,
+  clearAllTransactions,
+  clearUserType //@ts-ignore
+} from '@/stores/transactions'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 const router = useRouter()
 
 const isProfileMenuOpen = ref(false)
@@ -12,9 +20,17 @@ const isProfileMenuOpen = ref(false)
 function toggleProfileMenu() {
   isProfileMenuOpen.value = !isProfileMenuOpen.value
 }
+const route = useRoute()
 const user = getUser()
+const currency = route.params.currency
 const logout = () => {
-  clearUser(), clearToken()
+  clearUser(),
+    clearToken(),
+    clearBranche(),
+    clearCurrency(),
+    clearPhoneType(),
+    clearUserType(),
+    clearAllTransactions()
   router.push('/')
 }
 

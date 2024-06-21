@@ -58,7 +58,8 @@ import {
   getBranches,
   getCurrencies,
   getTransactions,
-  getUserType //@ts-ignore
+  getUserType, //@ts-ignore
+  setPhoneType
 } from '@/stores/transactions'
 
 //@ts-ignore
@@ -265,6 +266,7 @@ const updated = async () => {
 
     // Attendre que toutes les opérations soient terminées avant de rafraîchir les données
     await Promise.all(promises)
+    setTransaction(route.params.currency, transactions.value)
     await get_transaction()
   } catch (error) {
     console.log(error)
@@ -314,33 +316,22 @@ const dataState: State = {
 
 const get_transaction = async () => {
   const currency = route.params.currency
-  useAxiosRequestWithToken(token)
-    .get(`${ApiRoutes.transactionList}${currency}`)
-    .then(function (response) {
-      //success
-      transactions.value = response.data.transactions as Array<ITransaction>
-      //setTransaction(transactions.value as ITransaction)
-      dataResult.value = process(transactions.value, dataState)
-    })
-    .catch(function (error) {
-      //error
-    })
+  try {
+    const response = await useAxiosRequestWithToken(token).get(
+      `${ApiRoutes.transactionList}${currency}`
+    )
+    transactions.value = response.data.transactions
+    setTransaction(currency, transactions.value)
+    dataResult.value = process(transactions.value, dataState)
+  } catch (error) {
+    console.error(error)
+  }
 }
+// }
 
 const isLoaded = ref(false)
 
 const reload = async () => {
-  const localTransactions = getTransactions()
-  const localBranches = getBranches()
-  const localCurrencies = getCurrencies()
-  const localUserTypes = getUserType()
-  // if (localTransactions) {
-  //   transactions.value = localTransactions
-  //   branches.value = localBranches
-  //   currencies.value = localCurrencies
-  //   userTypes.value = localUserTypes
-  //   isLoaded.value = true
-  // } else {
   await get_transaction()
   await get_currencies()
   await get_branches()
@@ -521,6 +512,7 @@ const get_phoneTypes = () => {
     .then(function (response) {
       //success
       phoneTypes.value = response.data.phoneTypes as Array<IPhoneType>
+      setPhoneType(phoneTypes.value as any)
       console.log('phoneTypes', phoneTypes.value)
     })
     .catch(function (error) {
