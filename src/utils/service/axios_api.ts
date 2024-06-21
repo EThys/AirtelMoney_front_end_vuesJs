@@ -1,9 +1,12 @@
 import axios, { type AxiosInstance } from 'axios'
 
 export const useAxiosRequestWithToken = (token: string = ''): AxiosInstance => {
+  axios.defaults.withCredentials = true
+  axios.defaults.withXSRFToken = true
   const useAxios: AxiosInstance = axios.create({
+    withXSRFToken: true,
+    withCredentials: true,
     baseURL: 'http://213.136.74.84:800/api/',
-    withCredentials: false,
     headers: {
       accept: 'application/json',
       'Content-type': 'application/json',
