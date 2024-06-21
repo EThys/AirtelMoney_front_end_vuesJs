@@ -47,3 +47,22 @@ export default {
   }
 }
 </script>
+<!-- const reload = async () => {
+  const currency = route.params.currency
+  const transactionData = getTransactions(currency)
+  if (transactionData) {
+    transactions.value = transactionData
+    dataResult.value = process(transactions.value, dataState)
+    isLoaded.value = false
+  } else {
+    await get_transaction()
+    await get_currencies()
+    await get_branches()
+    await get_phoneTypes()
+    await get_userTypes()
+
+    // Stocker les données dans le localStorage
+    setTransaction(route.params.currency, transactions.value)
+    isLoaded.value = true
+  }
+} -->
