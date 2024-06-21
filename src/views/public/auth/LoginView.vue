@@ -31,19 +31,13 @@ const auth = ref<IUserAuth>({
 async function login() {
   loading.value = true
   const data = JSON.parse(JSON.stringify(auth.value))
-  const timeoutId = setTimeout(() => {
-    // Déclenche une action si le timeout est atteint
-    $toast.open({
-      message: "Connexion échouée : temps d'attente dépassé",
-      type: 'error',
-      position: 'top-right',
-      duration: 3000
-    })
-    loading.value = false
-  }, 10000) //
-
+  const abortController = new AbortController()
+  const abortSignal = abortController.signal
   await useAxiosRequestWithToken()
-    .post(`${ApiRoutes.login}`, data)
+    .post(`${ApiRoutes.login}`, data, {
+      timeout: 30000, // 30 seconds
+      signal: abortSignal
+    })
     .then(function (response) {
       //success
       const token = response.data.token
@@ -52,7 +46,6 @@ async function login() {
         setUser(response.data as IUser)
         router.push('/currency/usd')
       }
-      clearTimeout(timeoutId)
       loading.value = false
     })
     .catch(function (error) {
@@ -63,7 +56,6 @@ async function login() {
         position: 'top-right',
         duration: 3000
       })
-      clearTimeout(timeoutId)
       loading.value = false
     })
 }
