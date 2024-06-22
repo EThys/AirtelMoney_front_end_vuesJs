@@ -33,13 +33,23 @@ async function login() {
   const data = JSON.parse(JSON.stringify(auth.value))
   const abortController = new AbortController()
   const abortSignal = abortController.signal
-  await useAxiosRequestWithToken()
-    .post(`${ApiRoutes.login}`, data, {
-      timeout: 30000, // 30 seconds
-      signal: abortSignal
+
+  const networkTimeout = setTimeout(() => {
+    abortController.abort()
+    loading.value = false
+    $toast.open({
+      message: 'Network timeout, please try again later.',
+      type: 'error',
+      position: 'top-right',
+      duration: 3000
     })
+  }, 30000)
+
+  await useAxiosRequestWithToken()
+    .post(`${ApiRoutes.login}`, data, { signal: abortSignal })
     .then(function (response) {
       //success
+      clearTimeout(networkTimeout)
       const token = response.data.token
       if (token != null) {
         setToken(token as IToken)
@@ -50,6 +60,7 @@ async function login() {
     })
     .catch(function (error) {
       //error
+      clearTimeout(networkTimeout)
       $toast.open({
         message: error.response.data.message,
         type: 'error',
