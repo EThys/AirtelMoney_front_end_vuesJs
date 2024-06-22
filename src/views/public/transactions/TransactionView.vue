@@ -107,7 +107,6 @@ const pageChangeHandler = (event: any) => {
 }
 
 const filter = ref<CompositeFilterDescriptor>({ logic: 'and', filters: [] })
-console.log('ethberg', filter)
 //filter row KENDO ui
 
 const getAllTransaction = async () => {
@@ -141,7 +140,7 @@ const updated = async () => {
   const newItems = editedItems.filter(
     (item) => typeof item.TransactionId === 'string' && item.TransactionId.startsWith('tmp_')
   )
-  console.log('newItems', newItems)
+  // console.log('newItems', newItems)
 
   const updatedItems = editedItems.filter((item) => !item.isNew && item.TransactionId)
 
@@ -247,7 +246,7 @@ const updated = async () => {
         throw new Error(errorMessages)
       } else {
         $toast.open({
-          message: 'Items supprimés avec succès',
+          message: 'Delete successful',
           type: 'success'
         })
       }
@@ -350,7 +349,7 @@ const insert = () => {
   const data = dataResult.value.data.slice()
 
   const numLines = dataResult.value.data.length
-  console.log('numLines', numLines)
+  // console.log('numLines', numLines)
 
   const dataItem = {
     TransactionId: generateUniqueId(),
@@ -420,20 +419,20 @@ const deletedLocal = (props: any) => {
   const dataItem = props.dataItem
   dataItem.status = 'delete'
 
-  console.log(dataItem)
+  // console.log(dataItem)
 
   deletedTransactions.value.push(dataItem)
   editedItems.value.splice(editedItems.value.indexOf(dataItem), 1)
 
   const deleteItems = dataResult.value.data.filter((item) => item.status === 'delete')
   isConfirmOpen.value = false
-  console.log('Éléments supprimés:', deleteItems)
+  // console.log('Éléments supprimés:', deleteItems)
 
-  console.log('Éléments supprimés:', deletedTransactions.value)
+  // console.log('Éléments supprimés:', deletedTransactions.value)
 
   // Boucle sur les éléments supprimés
   deletedTransactions.value.forEach((deletedItem) => {
-    console.log('Élément supprimé:', deletedItem)
+    // console.log('Élément supprimé:', deletedItem)
   })
 }
 
@@ -535,7 +534,7 @@ const get_currencies = async () => {
       currencyOption.value = currencies.value.filter(
         (currency) => currency.CurrencyCode === currencyRoute
       )
-      console.log(currencyOption)
+      // console.log(currencyOption)
     })
     .catch(function (error) {
       //error
@@ -583,7 +582,7 @@ const remove = async (props: any) => {
   try {
     loader.value = true
     const transactionId = props.dataItem['TransactionId']
-    console.log('ngaeeeeeeeeeeeee', transactionId)
+    // console.log('ngaeeeeeeeeeeeee', transactionId)
 
     if (isConfirmOpen.value) {
       const Response = await useAxiosRequestWithToken(token).delete(
@@ -928,8 +927,8 @@ const brancheEvent = (event: any, props: any) => {
             (event = { value: { UserTypeId: 1 } }) => {
               props.dataItem['user_type'] = event?.value
               props.dataItem['UserTypeFId'] = event?.value.UserTypeId
-              // props.dataItem.inEdit = true
-              // props.dataItem.status = 'edited'
+              updateInEdit(props.dataItem)
+              props.dataItem.status = 'edited'
               itemChange({
                 dataItem: props.dataItem,
                 field: 'user_type.UserTypeName',
@@ -1074,7 +1073,7 @@ const brancheEvent = (event: any, props: any) => {
             style="
               width: 100%;
               padding: 4px;
-
+              text-align: center;
               border-radius: 5px;
               font-size: 16px;
             "

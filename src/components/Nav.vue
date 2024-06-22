@@ -103,7 +103,7 @@ const name = 'Nav'
                 role="menuitem"
                 tabindex="-1"
                 id="user-menu-item-0"
-                >Profile</a
+                >Profil</a
               >
               <a
                 @click="logout"
@@ -112,7 +112,7 @@ const name = 'Nav'
                 role="menuitem"
                 tabindex="-1"
                 id="user-menu-item-1"
-                >Déconnexion</a
+                >Logout</a
               >
             </div>
           </div>
