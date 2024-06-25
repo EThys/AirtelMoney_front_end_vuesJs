@@ -285,16 +285,16 @@ const cellClick = (e: any) => {
   e.dataItem.inEdit = e.field
 }
 
-const filterChange = (ev: any) => {
-  loader.value = true
-  filter.value = ev.filter
-  console.log('change filter', ev)
-  setTimeout(() => {
-    filter.value = ev.filter
-    console.log('filterrrrrzzz', filter.value)
-    loader.value = false
-  }, 300)
-}
+// const filterChange = (ev: any) => {
+//   loader.value = true
+//   filter.value = ev.filter
+//   console.log('change filter', ev)
+//   setTimeout(() => {
+//     filter.value = ev.filter
+//     console.log('filterrrrrzzz', filter.value)
+//     loader.value = false
+//   }, 300)
+// }
 
 // Get currency from route
 const dataState: State = {
