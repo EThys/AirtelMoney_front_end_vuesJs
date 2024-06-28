@@ -189,10 +189,10 @@ const updated = async () => {
       })
       promises.push(...newItemsPromises)
     }
-    // Mettre à jour les éléments existants en PUT
+    // Mettre à jour les éléments existants en POST
     if (updatedItems.length > 0) {
       const updatedItemsPromises = updatedItems.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).put(
+        const response = await useAxiosRequestWithToken(token).post(
           `${ApiRoutes.updateTransaction}/${item.TransactionId}`,
           item
         )
@@ -223,7 +223,7 @@ const updated = async () => {
     // Supprimer les éléments
     if (deletedTransactions.value.length > 0) {
       const deleteItemsPromises = deletedTransactions.value.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).delete(
+        const response = await useAxiosRequestWithToken(token).post(
           `${ApiRoutes.deleteTransaction}/${item.TransactionId}`
         )
         const index = transactions.value.findIndex((i) => i.TransactionId === item.TransactionId)
