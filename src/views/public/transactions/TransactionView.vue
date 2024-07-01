@@ -189,7 +189,7 @@ const updated = async () => {
       })
       promises.push(...newItemsPromises)
     }
-    // Mettre à jour les éléments existants en POST
+    // Mettre à jour les éléments existants en PUT
     if (updatedItems.length > 0) {
       const updatedItemsPromises = updatedItems.map(async (item) => {
         const response = await useAxiosRequestWithToken(token).post(
