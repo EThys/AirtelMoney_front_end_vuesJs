@@ -23,7 +23,7 @@ import {
 //@ts-ignore
 import { getToken } from '@/stores/token'
 import { AutoComplete, ComboBox, DropDownList } from '@progress/kendo-vue-dropdowns'
-import { computed, ref, watchEffect, watch } from 'vue'
+import { onMounted, ref, watchEffect, watch } from 'vue'
 //@ts-ignore
 import { Transactioncolumns } from '@/utils/constante/column/transaction_col'
 //@ts-ignore
@@ -331,11 +331,7 @@ const reload = async () => {
   await get_userTypes()
   loading.value = false
 }
-watchEffect(async () => {
-  if (isLoaded.value) {
-    await get_transaction()
-  }
-})
+
 watch(
   () => route.params.currency,
   async (newCurrency: any, oldCurrency: any) => {
@@ -344,6 +340,17 @@ watch(
     }
   }
 )
+const loadData = async () => {
+  loading.value = true
+  await get_currencies()
+  await get_branches()
+  await get_phoneTypes()
+  await get_userTypes()
+  loading.value = false
+}
+
+// Charger les données lors du montage du composant
+onMounted(loadData)
 const insert = () => {
   const generateUniqueId = () => {
     return 'tmp_' + Date.now().toString(16)
@@ -758,6 +765,22 @@ const exportExcel = () => {
           @click="insert"
         >
           Ajouter
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="inline-block ml-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            width="16"
+            height="16"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
         </kbutton>
         <kbutton
           class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
@@ -766,6 +789,22 @@ const exportExcel = () => {
           @click="cancel"
         >
           Annuler
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="inline-block ml-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            width="16"
+            height="16"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
         </kbutton>
         <kbutton
           class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
@@ -774,6 +813,22 @@ const exportExcel = () => {
           @click="updated()"
         >
           Enregistrer
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="inline-block"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            width="16"
+            height="16"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+            />
+          </svg>
         </kbutton>
         <kbutton
           class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
@@ -781,6 +836,22 @@ const exportExcel = () => {
           @click="exportExcel()"
         >
           Export Excel
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="inline-block"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            width="16"
+            height="16"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
         </kbutton>
       </div>
     </grid-toolbar>
@@ -985,7 +1056,6 @@ const exportExcel = () => {
               props.dataItem['user_type'] = event?.value
               props.dataItem['UserTypeFId'] = event?.value.UserTypeId
               updateInEdit(props.dataItem)
-              props.dataItem.status = 'edited'
               itemChange({
                 dataItem: props.dataItem,
                 field: 'user_type.UserTypeName',
