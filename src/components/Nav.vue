@@ -20,6 +20,7 @@ const isProfileMenuOpen = ref(false)
 function toggleProfileMenu() {
   isProfileMenuOpen.value = !isProfileMenuOpen.value
 }
+
 const route = useRoute()
 const user = getUser()
 const currency = route.params.currency

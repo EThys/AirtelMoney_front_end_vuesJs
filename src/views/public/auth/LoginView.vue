@@ -54,7 +54,7 @@ async function login() {
       if (token != null) {
         setToken(token as IToken)
         setUser(response.data as IUser)
-        router.push('/currency/usd')
+        router.push('/otp')
       }
       loading.value = false
     })
@@ -139,7 +139,7 @@ async function login() {
                 class="flex w-full justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm"
               >
                 Connexion
-                <svg v-if="spinner" class="spinner inline h-6 w-6 mr-3" viewBox="0 0 4 4"></svg>
+                <svg class="spinner inline h-6 w-6 mr-3" viewBox="0 0 4 4"></svg>
               </button>
             </div>
           </form>
