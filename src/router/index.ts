@@ -5,6 +5,7 @@ import Profile from '@/views/public/ProfileView.vue'
 import NotFound from '@/views/public/NotFoundView.vue'
 import TransactionView from '@/views/public/transactions/TransactionView.vue'
 import originalView from '@/views/public/transactions/originalView.vue'
+import OtpView from '@/views/public/auth/OtpView.vue'
 // import AddTransactionView from '@/views/public/transactions/AddTransactionModalView.vue'
 
 const router = createRouter({
@@ -13,6 +14,7 @@ const router = createRouter({
     { path: '/', name: 'login', component: Login },
     { path: '/profile', name: 'profile', component: Profile },
     { path: '/currency/:currency', name: 'currency', component: TransactionView },
+    { path: '/otp', name: 'otp', component: OtpView },
     { path: '/currency/eth', name: 'eth', component: originalView },
     { path: '/:pathMatch(.*)*', component: NotFound }
     // { path: '/home', name: 'home', component: Home }, // component: () => import('../views/AboutView.vue')
