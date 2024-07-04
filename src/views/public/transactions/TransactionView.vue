@@ -322,11 +322,6 @@ const get_transaction = async () => {
 // }
 
 const isLoaded = ref(false)
-const getBranches = ref([{}])
-const getCurrencies = ref([{}])
-const getPhoneTypes = ref([{}])
-const getUserTypes = ref([{}])
-
 const reload = async () => {
   loading.value = true
   await get_transaction()
