@@ -63,7 +63,9 @@ import {
 } from '@/stores/transactions'
 
 //@ts-ignore
+import { saveExcel } from '@progress/kendo-vue-excel-export'
 import { useRoute } from 'vue-router'
+const datepicker = DatePicker
 const isConfirmOpen = ref(false)
 const $toast = useToast()
 const branches = ref<Array<IBranche>>([{} as IBranche])
@@ -71,6 +73,7 @@ const userTypes = ref<Array<IUserType>>([{} as IUserType])
 const phoneTypes = ref<Array<IPhoneType>>([{} as IPhoneType])
 const currencies = ref<Array<ICurrency>>([{} as ICurrency])
 const currencyOption = ref<Array<ICurrency>>([{} as ICurrency])
+
 const loader = ref<Boolean>(false)
 const user = getUser()
 const show = ref<any>(false)
@@ -105,7 +108,6 @@ const pageChangeHandler = (event: any) => {
     take.value = event.page.take
   }, 300)
 }
-
 const filter = ref<CompositeFilterDescriptor>({ logic: 'and', filters: [] })
 //filter row KENDO ui
 
@@ -304,10 +306,11 @@ const dataState: State = {
 }
 
 const get_transaction = async () => {
+  console.log(fromDate.value)
   const currency = route.params.currency
   try {
     const response = await useAxiosRequestWithToken(token).get(
-      `${ApiRoutes.transactionList}${currency}`
+      `${ApiRoutes.transactionList}${currency}?from=${fromDate.value}&to=${toDate.value}`
     )
     transactions.value = response.data.transactions
     setTransaction(currency, transactions.value)
@@ -319,16 +322,20 @@ const get_transaction = async () => {
 // }
 
 const isLoaded = ref(false)
+const getBranches = ref([{}])
+const getCurrencies = ref([{}])
+const getPhoneTypes = ref([{}])
+const getUserTypes = ref([{}])
 
 const reload = async () => {
+  loading.value = true
   await get_transaction()
   await get_currencies()
   await get_branches()
   await get_phoneTypes()
   await get_userTypes()
-  isLoaded.value = true
+  loading.value = false
 }
-
 watchEffect(async () => {
   if (isLoaded.value) {
     await get_transaction()
@@ -585,7 +592,7 @@ const remove = async (props: any) => {
     // console.log('ngaeeeeeeeeeeeee', transactionId)
 
     if (isConfirmOpen.value) {
-      const Response = await useAxiosRequestWithToken(token).delete(
+      const Response = await useAxiosRequestWithToken(token).get(
         `${ApiRoutes.deleteTransaction}/${transactionId}`
       )
 
@@ -667,9 +674,34 @@ const brancheEvent = (event: any, props: any) => {
     value: props.dataItem.BrancheFId
   })
 }
+const fromDate = ref(new Date())
+const toDate = ref('')
+const loading = ref<Boolean>(false)
+
+const exportExcel = () => {
+  if (transactions.value.length > 0) {
+    saveExcel({
+      data: transactions.value,
+      fileName: `transactions`,
+      columns: Transactioncolumns
+    })
+  } else {
+    $toast.open({
+      message: 'Aucune donnée chargée',
+      type: 'error',
+      position: 'top-right',
+      duration: 1000
+    })
+  }
+}
 </script>
 <template>
   <Nav />
+  <div class="loading-overlay" v-if="loading">
+    <div class="spinner">
+      <h2 class="typing text-xl text-white font-semibold tracking-wide">Airtel Money...</h2>
+    </div>
+  </div>
 
   <grid
     class="gridT"
@@ -693,39 +725,69 @@ const brancheEvent = (event: any, props: any) => {
     :take="take"
     :skip="skip"
   >
-    <grid-toolbar class="flex mb-2 pt-2">
-      <kbutton
-        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
-        title="Add new"
-        :theme-color="'primary'"
-        @click="insert"
-      >
-        Add new
-      </kbutton>
-      <kbutton
-        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
-        title="Cancel"
-        :theme-color="'primary'"
-        @click="cancel"
-      >
-        Cancel
-      </kbutton>
-      <kbutton
-        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
-        title="Save"
-        :theme-color="'primary'"
-        @click="updated()"
-      >
-        Save
-      </kbutton>
-      <kbutton
-        class="bg-gray-400 rounded-xl text-white py-2 hover:scale-105 duration-300 p-4 cursor-pointer mx-2"
-        title="Reload"
-        :theme-color="'primary'"
-        @click="reload"
-      >
-        Reload
-      </kbutton>
+    <grid-toolbar class="mb-2 pt-2">
+      <div class="flex space-x-2 mb-4">
+        <div class="mx-3">
+          <span
+            >From
+            <input
+              type="date"
+              class="border border-gray-300"
+              v-model="fromDate"
+              style="width: '230px'"
+          /></span>
+        </div>
+        <div class="mx-3">
+          <span
+            >To
+            <input
+              type="date"
+              class="border border-gray-300"
+              v-model="toDate"
+              style="width: '230px'"
+          /></span>
+        </div>
+        <button
+          class="bg-gray-400 text-white hover:scale-105 duration-300 px-2 cursor-pointer mx-2"
+          title="Reload"
+          @click="reload"
+        >
+          Charger
+        </button>
+      </div>
+      <div class="mb-2">
+        <kbutton
+          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+          title="Add new"
+          :theme-color="'primary'"
+          @click="insert"
+        >
+          Ajouter
+        </kbutton>
+        <kbutton
+          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+          title="Cancel"
+          :theme-color="'primary'"
+          @click="cancel"
+        >
+          Annuler
+        </kbutton>
+        <kbutton
+          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+          title="Save"
+          :theme-color="'primary'"
+          @click="updated()"
+        >
+          Enregistrer
+        </kbutton>
+        <kbutton
+          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+          title="Export"
+          @click="exportExcel()"
+        >
+          Export Excel
+        </kbutton>
+      </div>
     </grid-toolbar>
     <grid-norecords class="k-grid-no-records"> There is no data available custom </grid-norecords>
 
@@ -1110,5 +1172,22 @@ th.k-header.customMenu.active > div > div > span.k-i-more-vertical::before {
 th.k-header.active > div > a {
   color: #fff;
   background-color: #ff6358;
+}
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* Animation de typing */
+.typing {
+  animation: typing 1.2s steps(15) infinite;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 25px;
 }
 </style>
