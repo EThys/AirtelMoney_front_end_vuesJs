@@ -88,7 +88,7 @@ const route = useRoute()
 const showLoad = ref<Boolean>(false)
 const sortable = ref(true)
 const transactions = ref<Array<ITransaction>>([{} as ITransaction])
-const dataResult = ref<DataResult>({ data: [] as any, total: 0 })
+let dataResult = ref<DataResult>({ data: [] as any, total: 0 })
 const skip = ref<number | undefined>(0)
 const token = getToken() as string
 const take = ref<number | undefined>(10)
@@ -116,7 +116,7 @@ const pageChangeHandler = (event: any) => {
 }
 const filter = ref<CompositeFilterDescriptor>({ logic: 'and', filters: [] })
 //filter row KENDO ui
-const datas = computed(() => filterBy(dataResult.value.data, filter.value))
+
 const getAllTransaction = async () => {
   await useAxiosRequestWithToken(token)
     .get(`${ApiRoutes.allTransaction}`)
@@ -157,6 +157,8 @@ const updated = async () => {
 
     // Envoyer les nouveaux éléments en POST
     if (newItems.length > 0) {
+      let msg = ''
+      let type = 'e'
       const newItemsPromises = newItems.map(async (item) => {
         const filteredData = {
           CurrencyFId: item.CurrencyFId,
@@ -176,27 +178,24 @@ const updated = async () => {
         )
 
         if (response.data.error) {
-          const errorMsg = response.data.error
-          $toast.open({
-            message: errorMsg,
-            type: 'error',
-            position: 'top-right',
-            duration: 1000
-          })
+          msg = response.data.error
+          type = 'error'
           throw new Error(response.data.error)
         } else {
-          const successMsg = response.data.message
-          $toast.open({
-            message: successMsg,
-            type: 'success',
-            position: 'top-right',
-            duration: 1000
-          })
+          dataResult.value.data.push(response.data.transactions)
+          msg = response.data.message
+          type = 'success'
           item.TransactionId = response.data.TransactionId
-
+          addedTransactions.value = []
           delete item.status
           delete item.isNew
         }
+        $toast.open({
+          message: msg,
+          type: type,
+          position: 'top-right',
+          duration: 5000
+        })
       })
       promises.push(...newItemsPromises)
     }
@@ -234,7 +233,7 @@ const updated = async () => {
     // Supprimer les éléments
     if (deletedTransactions.value.length > 0) {
       const deleteItemsPromises = deletedTransactions.value.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).get(
+        const response = await useAxiosRequestWithToken(token).post(
           `${ApiRoutes.deleteTransaction}/${item.TransactionId}`
         )
         const index = transactions.value.findIndex((i) => i.TransactionId === item.TransactionId)
@@ -350,11 +349,6 @@ const insert = () => {
   const generateUniqueId = () => {
     return 'tmp_' + Date.now().toString(16)
   }
-  const data = dataResult.value.data.slice()
-
-  const numLines = dataResult.value.data.length
-  // console.log('numLines', numLines)
-
   const dataItem = {
     TransactionId: generateUniqueId(),
     Amount: '',
@@ -369,15 +363,7 @@ const insert = () => {
     status: 'added',
     isNew: true
   }
-
-  const newtransactions = [...data]
-  // const existingItem = newtransactions.find((item) => item.unique === dataItem.unique)
-  newtransactions.unshift(dataItem as any)
-  // if (!existingItem) {
-
-  // }
-
-  dataResult.value.data = newtransactions
+  dataResult.value.data.push(dataItem as any)
 }
 
 const editedItems = ref<Array<any>>([])
@@ -704,6 +690,7 @@ const focusCursor = () => {
     document.querySelector('sty').style.backgroundColor = 'white'
   }
 }
+const datas = computed(() => filterBy(dataResult.value.data, filter.value))
 </script>
 <template>
   <Nav />
@@ -974,6 +961,8 @@ const focusCursor = () => {
                   props.dataItem['BrancheFId'] = event?.value.BrancheId
                   props.dataItem['FromBranchId'] = event?.value.BrancheId
                   updateInEdit(props.dataItem)
+                  //@ts-ignore
+                  document.querySelector('sty').style.backgroundColor = 'white'
                   // props.dataItem.inEdit = true
                   props.dataItem.status = 'edited'
                   itemChange({
@@ -1002,6 +991,8 @@ const focusCursor = () => {
                   props.dataItem['FromBranchId'] = event?.value.BrancheId
                   props.dataItem.user['BrancheFId'] = event?.value.BrancheId
                   updateInEdit(props.dataItem)
+                  //@ts-ignore
+                  document.querySelector('sty').style.backgroundColor = 'white'
                   // props.dataItem.inEdit = true
                   props.dataItem.status = 'edited'
                   itemChange({
@@ -1050,7 +1041,10 @@ const focusCursor = () => {
               (event = { value: { UserTypeId: 1 } }) => {
                 props.dataItem['user_type'] = event?.value
                 props.dataItem['UserTypeFId'] = event?.value.UserTypeId
+                //@ts-ignore
+                document.querySelector('sty').style.backgroundColor = 'white'
                 updateInEdit(props.dataItem)
+
                 itemChange({
                   dataItem: props.dataItem,
                   field: 'user_type.UserTypeName',
@@ -1075,6 +1069,8 @@ const focusCursor = () => {
               (event = { value: { CurrencyId: 1 } }) => {
                 props.dataItem['currency'] = event?.value
                 props.dataItem['CurrencyFId'] = event.value.CurrencyId
+                //@ts-ignore
+                document.querySelector('sty').style.backgroundColor = 'white'
                 // props.dataItem.inEdit = true
                 // props.dataItem.status = 'edited'
                 itemChange({
@@ -1230,7 +1226,7 @@ th.k-header.customMenu.active > div > div > span.k-i-more-vertical::before {
   display: none;
 }
 .sty {
-  background: orange;
+  background: white;
 }
 th.k-header.active > div > a {
   color: #fff;
