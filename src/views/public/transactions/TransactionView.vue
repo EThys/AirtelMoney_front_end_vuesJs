@@ -150,7 +150,7 @@ const updated = async () => {
   )
   // console.log('newItems', newItems)
 
-  const updatedItems = editedItems.filter((item) => !item.isNew && item.TransactionId)
+  const updatedItems = editedItems.filter((item) => !item.isNew && !item.TransactionId.find('tmp_'))
 
   try {
     const promises = []
@@ -182,7 +182,7 @@ const updated = async () => {
           type = 'error'
           throw new Error(response.data.error)
         } else {
-          dataResult.value.data.push(response.data.transactions)
+          //dataResult.value.data.push(response.data.transactions)
           msg = response.data.message
           type = 'success'
           item.TransactionId = response.data.TransactionId
@@ -197,12 +197,12 @@ const updated = async () => {
           duration: 5000
         })
       })
-      promises.push(...newItemsPromises)
+      // promises.push(...newItemsPromises)
     }
     // Mettre à jour les éléments existants en PUT
     if (updatedItems.length > 0) {
       const updatedItemsPromises = updatedItems.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).post(
+        const response = await useAxiosRequestWithToken(token).put(
           `${ApiRoutes.updateTransaction}/${item.TransactionId}`,
           item
         )
