@@ -16,6 +16,9 @@ export interface ITransaction {
   DateCreated?: string
   DateMovemented?: string
   branche: IBranche
+  status?: string
+  isNew?: Boolean
+  ClassName?: string
 }
 
 /*

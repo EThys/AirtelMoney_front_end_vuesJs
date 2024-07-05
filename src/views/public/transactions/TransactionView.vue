@@ -276,7 +276,7 @@ const updated = async () => {
 
 const editedItemsLocal = ref<Array<ITransaction>>([])
 
-const addedTransactions = ref<Array<ITransaction>>([])
+let addedTransactions = ref<Array<ITransaction>>([])
 const updatedTransactions = ref<Array<ITransaction>>([])
 const deletedTransactions = ref<Array<ITransaction>>([])
 
@@ -369,9 +369,13 @@ const insert = () => {
     status: 'added',
     isNew: true
   }
+
   const newtransactions = [...data]
-  console.log('eee', newtransactions)
+  // const existingItem = newtransactions.find((item) => item.unique === dataItem.unique)
   newtransactions.unshift(dataItem as any)
+  // if (!existingItem) {
+
+  // }
 
   dataResult.value.data = newtransactions
 }
@@ -691,21 +695,145 @@ const exportExcel = () => {
     })
   }
 }
-// const focusCursor = () => {
-//   if (addedTransactions.value.length != 0) {
-//     console.log('yeseeeeeeeeeeeeeeeeeeeeeeeeeee')
-//     delete addedTransactions.value[0].status
-//     delete addedTransactions.value[0].isNew
-//     console.log('test*************')
-//   }
-//   console.log('yeseeeeeeeeeeeeeeeeeeeeeeeeeee')
-// }
+const focusCursor = () => {
+  if (addedTransactions.value.length != 0) {
+    addedTransactions.value.map((dt, n) => {
+      addedTransactions.value[n].isNew = false
+      addedTransactions.value[n].status = ''
+    })
+    document.querySelector('sty').style.backgroundColor = 'white'
+  }
+}
 </script>
 <template>
   <Nav />
   <div class="loading-overlay" v-if="loading">
     <div class="spinner">
       <h2 class="typing text-xl text-white font-semibold tracking-wide">Airtel Money...</h2>
+    </div>
+  </div>
+  <div class="mb-2 pt-2" @click="focusCursor">
+    <div class="flex space-x-2 mb-4">
+      <div class="mx-3">
+        <span
+          >From
+          <input
+            type="date"
+            class="border border-gray-300"
+            v-model="fromDate"
+            style="width: '230px'"
+        /></span>
+      </div>
+      <div class="mx-3">
+        <span
+          >To
+          <input type="date" class="border border-gray-300" v-model="toDate" style="width: '230px'"
+        /></span>
+      </div>
+      <button
+        class="bg-gray-400 text-white hover:scale-105 duration-300 px-2 cursor-pointer mx-2"
+        title="Reload"
+        @click="reload"
+      >
+        Charger
+      </button>
+    </div>
+    <div class="mb-2">
+      <kbutton
+        class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+        title="Add new"
+        :theme-color="'primary'"
+        @click="insert"
+      >
+        Ajouter
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="inline-block ml-1"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          width="16"
+          height="16"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+      </kbutton>
+      <kbutton
+        class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+        title="Cancel"
+        :theme-color="'primary'"
+        @click="cancel"
+      >
+        Annuler
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="inline-block ml-1"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          width="16"
+          height="16"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </kbutton>
+      <kbutton
+        class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+        title="Save"
+        :theme-color="'primary'"
+        @click="updated()"
+      >
+        Enregistrer
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="inline-block"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          width="16"
+          height="16"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+          />
+        </svg>
+      </kbutton>
+      <kbutton
+        class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+        title="Export"
+        @click="exportExcel()"
+      >
+        Export Excel
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="inline-block"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          width="16"
+          height="16"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      </kbutton>
     </div>
   </div>
   <div>
@@ -737,134 +865,6 @@ const exportExcel = () => {
       </div>
     </template> -->
 
-      <grid-toolbar class="mb-2 pt-2">
-        <div class="flex space-x-2 mb-4">
-          <div class="mx-3">
-            <span
-              >From
-              <input
-                type="date"
-                class="border border-gray-300"
-                v-model="fromDate"
-                style="width: '230px'"
-            /></span>
-          </div>
-          <div class="mx-3">
-            <span
-              >To
-              <input
-                type="date"
-                class="border border-gray-300"
-                v-model="toDate"
-                style="width: '230px'"
-            /></span>
-          </div>
-          <button
-            class="bg-gray-400 text-white hover:scale-105 duration-300 px-2 cursor-pointer mx-2"
-            title="Reload"
-            @click="reload"
-          >
-            Charger
-          </button>
-        </div>
-        <div class="mb-2">
-          <kbutton
-            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-            title="Add new"
-            :theme-color="'primary'"
-            @click="insert"
-          >
-            Ajouter
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="inline-block ml-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              width="16"
-              height="16"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </kbutton>
-          <kbutton
-            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-            title="Cancel"
-            :theme-color="'primary'"
-            @click="cancel"
-          >
-            Annuler
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="inline-block ml-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              width="16"
-              height="16"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </kbutton>
-          <kbutton
-            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-            title="Save"
-            :theme-color="'primary'"
-            @click="updated()"
-          >
-            Enregistrer
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="inline-block"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              width="16"
-              height="16"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-              />
-            </svg>
-          </kbutton>
-          <kbutton
-            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-            title="Export"
-            @click="exportExcel()"
-          >
-            Export Excel
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="inline-block"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              width="16"
-              height="16"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </kbutton>
-        </div>
-      </grid-toolbar>
       <grid-norecords class="k-grid-no-records"> There is no data available custom </grid-norecords>
 
       <template v-slot:RemoveCell="{ props }">
@@ -1229,7 +1229,9 @@ th.k-header.customMenu.active > div > div > span.k-i-more-vertical::before {
 .k-columnmenu-item {
   display: none;
 }
-
+.sty {
+  background: orange;
+}
 th.k-header.active > div > a {
   color: #fff;
   background-color: #ff6358;
