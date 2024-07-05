@@ -9,7 +9,7 @@ export const ApiRoutes = {
   transactionByCurrency: '/transactions/currency/currencyCode',
   deleteTransaction: 'transactionDelete',
   transactionList: '/transactions/currency/',
-  addTransaction: 'transactions',
+  addTransaction: 'transactionAdd',
   updateTransaction: 'transaction',
   phoneType: '/phoneTypes'
 }

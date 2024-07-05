@@ -8,6 +8,12 @@ import {
   filterGroupByField,
   GridToolbar,
   GridNoRecords,
+  GridColumnMenuFilter,
+  GridColumnMenuSort,
+  GridColumnMenuItemGroup,
+  GridColumnMenuItemContent,
+  GridColumnMenuItem,
+  type GridRowClickEvent,
   type GridDataStateChangeEvent
 } from '@progress/kendo-vue-grid'
 //@ts-ignore
@@ -23,7 +29,7 @@ import {
 //@ts-ignore
 import { getToken } from '@/stores/token'
 import { AutoComplete, ComboBox, DropDownList } from '@progress/kendo-vue-dropdowns'
-import { onMounted, ref, watchEffect, watch } from 'vue'
+import { onMounted, ref, watchEffect, watch, computed } from 'vue'
 //@ts-ignore
 import { Transactioncolumns } from '@/utils/constante/column/transaction_col'
 //@ts-ignore
@@ -110,7 +116,7 @@ const pageChangeHandler = (event: any) => {
 }
 const filter = ref<CompositeFilterDescriptor>({ logic: 'and', filters: [] })
 //filter row KENDO ui
-
+const datas = computed(() => filterBy(dataResult.value.data, filter.value))
 const getAllTransaction = async () => {
   await useAxiosRequestWithToken(token)
     .get(`${ApiRoutes.allTransaction}`)
@@ -187,6 +193,9 @@ const updated = async () => {
             duration: 1000
           })
           item.TransactionId = response.data.TransactionId
+
+          delete item.status
+          delete item.isNew
         }
       })
       promises.push(...newItemsPromises)
@@ -258,7 +267,6 @@ const updated = async () => {
     // Attendre que toutes les opérations soient terminées avant de rafraîchir les données
     await Promise.all(promises)
     setTransaction(route.params.currency, transactions.value)
-    await get_transaction()
   } catch (error) {
     console.log(error)
   } finally {
@@ -272,37 +280,24 @@ const addedTransactions = ref<Array<ITransaction>>([])
 const updatedTransactions = ref<Array<ITransaction>>([])
 const deletedTransactions = ref<Array<ITransaction>>([])
 
-const rowClick = (e: any) => {
-  e.transactions.inEdit = true
-  editedItemsLocal.value.push(e.dataItem)
-  console.log('editedItemsLocal', editedItemsLocal.value)
+const rowClick = (event: GridRowClickEvent) => {
+  alert('yessssssssss')
+  return
 }
 
-const cellClick = (e: any) => {
-  if (e.dataItem.inEdit && e.field === editField.value) {
-    return
-  }
-  //exitEdit(e.dataItem, true);
-  editField.value = e.field
-  e.dataItem.inEdit = e.field
+const filterChange = (ev: any) => {
+  loader.value = true
+  filter.value = ev.filter
+  console.log('change filter', ev.filter)
+  console.log('change filter', datas.value)
 }
-
-// const filterChange = (ev: any) => {
-//   loader.value = true
-//   filter.value = ev.filter
-//   console.log('change filter', ev)
-//   setTimeout(() => {
-//     filter.value = ev.filter
-//     console.log('filterrrrrzzz', filter.value)
-//     loader.value = false
-//   }, 300)
-// }
 
 // Get currency from route
 const dataState: State = {
   skip: skip.value,
   take: take.value,
-  sort: sort.value
+  sort: sort.value,
+  filter: filter.value
 }
 
 const get_transaction = async () => {
@@ -375,6 +370,7 @@ const insert = () => {
     isNew: true
   }
   const newtransactions = [...data]
+  console.log('eee', newtransactions)
   newtransactions.unshift(dataItem as any)
 
   dataResult.value.data = newtransactions
@@ -488,7 +484,6 @@ const cancel = async () => {
   dataResult.value.data = [...dataResult.value.data]
   deletedTransactions.value = []
   updatedTransactions.value = []
-  await get_transaction()
 }
 const get_branches = () => {
   useAxiosRequestWithToken(token)
@@ -676,8 +671,8 @@ const brancheEvent = (event: any, props: any) => {
     value: props.dataItem.BrancheFId
   })
 }
-const fromDate = ref(new Date())
-const toDate = ref('')
+const fromDate = ref(new Date().toISOString().substring(0, 10))
+const toDate = ref(new Date().toISOString().substring(0, 10))
 const loading = ref<Boolean>(false)
 
 const exportExcel = () => {
@@ -696,6 +691,15 @@ const exportExcel = () => {
     })
   }
 }
+// const focusCursor = () => {
+//   if (addedTransactions.value.length != 0) {
+//     console.log('yeseeeeeeeeeeeeeeeeeeeeeeeeeee')
+//     delete addedTransactions.value[0].status
+//     delete addedTransactions.value[0].isNew
+//     console.log('test*************')
+//   }
+//   console.log('yeseeeeeeeeeeeeeeeeeeeeeeeeeee')
+// }
 </script>
 <template>
   <Nav />
@@ -704,519 +708,511 @@ const exportExcel = () => {
       <h2 class="typing text-xl text-white font-semibold tracking-wide">Airtel Money...</h2>
     </div>
   </div>
-
-  <grid
-    class="gridT"
-    @pagechange="pageChangeHandler"
-    :data-items="dataResult"
-    :total="transactions.length"
-    :row-render="cellFunction"
-    :columns="Transactioncolumns"
-    :edit-field="'inEdit'"
-    @change="edit"
-    @cellclick="cellClick"
-    @rowClick="rowClick"
-    @itemchange="itemChange"
-    :filter="filter"
-    @filteringChange="filteringChange"
-    :loader="loader"
-    @datastatechange="dataStateChange"
-    :pageable="gridPageable"
-    :sortable="sortable"
-    :sort="sort"
-    :take="take"
-    :skip="skip"
-  >
-    <grid-toolbar class="mb-2 pt-2">
-      <div class="flex space-x-2 mb-4">
-        <div class="mx-3">
-          <span
-            >From
-            <input
-              type="date"
-              class="border border-gray-300"
-              v-model="fromDate"
-              style="width: '230px'"
-          /></span>
-        </div>
-        <div class="mx-3">
-          <span
-            >To
-            <input
-              type="date"
-              class="border border-gray-300"
-              v-model="toDate"
-              style="width: '230px'"
-          /></span>
-        </div>
-        <button
-          class="bg-gray-400 text-white hover:scale-105 duration-300 px-2 cursor-pointer mx-2"
-          title="Reload"
-          @click="reload"
-        >
-          Charger
-        </button>
+  <div>
+    <grid
+      class="gridT"
+      @pagechange="pageChangeHandler"
+      :data-items="datas"
+      :total="transactions.length"
+      :row-render="cellFunction"
+      :columns="Transactioncolumns"
+      :edit-field="'inEdit'"
+      @change="edit"
+      @rowclick="rowClick"
+      @itemchange="itemChange"
+      :filterable="true"
+      :filter="filter"
+      @filterchange="filterChange"
+      @datastatechange="dataStateChange"
+      :pageable="gridPageable"
+      :sortable="sortable"
+      :sort="sort"
+      :take="take"
+      :skip="skip"
+      :expanded="true"
+    >
+      <!-- <template #cell="{ dataItem, field }">
+      <div v-if="dataItem.inEdit" @click="focusCursor(dataItem)">
+        <input v-model="dataItem[field]" />
       </div>
-      <div class="mb-2">
-        <kbutton
-          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-          title="Add new"
-          :theme-color="'primary'"
-          @click="insert"
-        >
-          Ajouter
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="inline-block ml-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            width="16"
-            height="16"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </kbutton>
-        <kbutton
-          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-          title="Cancel"
-          :theme-color="'primary'"
-          @click="cancel"
-        >
-          Annuler
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="inline-block ml-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            width="16"
-            height="16"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </kbutton>
-        <kbutton
-          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-          title="Save"
-          :theme-color="'primary'"
-          @click="updated()"
-        >
-          Enregistrer
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="inline-block"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            width="16"
-            height="16"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-            />
-          </svg>
-        </kbutton>
-        <kbutton
-          class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
-          title="Export"
-          @click="exportExcel()"
-        >
-          Export Excel
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="inline-block"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            width="16"
-            height="16"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-        </kbutton>
-      </div>
-    </grid-toolbar>
-    <grid-norecords class="k-grid-no-records"> There is no data available custom </grid-norecords>
+    </template> -->
 
-    <template v-slot:RemoveCell="{ props }">
-      <td class="k-command-cell k-table-td">
-        <button
-          @click="deletedLocal(props)"
-          class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer"
-        >
-          <svg
-            class="h-6 w-6"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            fill="none"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+      <grid-toolbar class="mb-2 pt-2">
+        <div class="flex space-x-2 mb-4">
+          <div class="mx-3">
+            <span
+              >From
+              <input
+                type="date"
+                class="border border-gray-300"
+                v-model="fromDate"
+                style="width: '230px'"
+            /></span>
+          </div>
+          <div class="mx-3">
+            <span
+              >To
+              <input
+                type="date"
+                class="border border-gray-300"
+                v-model="toDate"
+                style="width: '230px'"
+            /></span>
+          </div>
+          <button
+            class="bg-gray-400 text-white hover:scale-105 duration-300 px-2 cursor-pointer mx-2"
+            title="Reload"
+            @click="reload"
           >
-            <path stroke="none" d="M0 0h24v24H0z" />
-            <line x1="4" y1="7" x2="20" y2="7" />
-            <line x1="10" y1="11" x2="10" y2="17" />
-            <line x1="14" y1="11" x2="14" y2="17" />
-            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
-          </svg>
-        </button>
+            Charger
+          </button>
+        </div>
+        <div class="mb-2">
+          <kbutton
+            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+            title="Add new"
+            :theme-color="'primary'"
+            @click="insert"
+          >
+            Ajouter
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="inline-block ml-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              width="16"
+              height="16"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </kbutton>
+          <kbutton
+            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+            title="Cancel"
+            :theme-color="'primary'"
+            @click="cancel"
+          >
+            Annuler
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="inline-block ml-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              width="16"
+              height="16"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </kbutton>
+          <kbutton
+            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+            title="Save"
+            :theme-color="'primary'"
+            @click="updated()"
+          >
+            Enregistrer
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="inline-block"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              width="16"
+              height="16"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+              />
+            </svg>
+          </kbutton>
+          <kbutton
+            class="bg-gray-400 text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer mx-2"
+            title="Export"
+            @click="exportExcel()"
+          >
+            Export Excel
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="inline-block"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              width="16"
+              height="16"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </kbutton>
+        </div>
+      </grid-toolbar>
+      <grid-norecords class="k-grid-no-records"> There is no data available custom </grid-norecords>
 
-        <div
-          v-if="isConfirmOpen"
-          class="fixed z-10 inset-0 overflow-y-auto"
-          aria-labelledby="modal-title"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-5 transition-opacity"
-          ></div>
+      <template v-slot:RemoveCell="{ props }">
+        <td class="k-command-cell k-table-td">
+          <button
+            @click="deletedLocal(props)"
+            class="bg-red-500 rounded-xl text-white py-2 hover:scale-105 duration-300 p-2 cursor-pointer"
+          >
+            <svg
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" />
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+              <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+              <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+            </svg>
+          </button>
 
           <div
-            style="margin-left: 30%"
-            class="fixed top-10 left-10 w-full h-screen z-50 overflow-hidden transition-all sm:my-8 sm:w-full sm:max-w-lg"
+            v-if="isConfirmOpen"
+            class="fixed z-10 inset-0 overflow-y-auto"
+            aria-labelledby="modal-title"
+            role="dialog"
+            aria-modal="true"
           >
             <div
-              class="relative transform overflow-hidden rounded-lg bg-white p-4 text-left shadow-xl transition-all"
+              class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-5 transition-opacity"
+            ></div>
+
+            <div
+              style="margin-left: 30%"
+              class="fixed top-10 left-10 w-full h-screen z-50 overflow-hidden transition-all sm:my-8 sm:w-full sm:max-w-lg"
             >
-              <div class="flex justify-between items-center">
-                <h3 class="text-xl font-semibold text-gray-900" id="modal-title">
-                  Confirm Delete?
-                </h3>
-                <button
-                  type="button"
-                  @click="isConfirmOpen = false"
-                  class="text-gray-400 focus:outline-none hover:text-gray-500"
-                >
-                  <svg
-                    class="h-6 w-6"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+              <div
+                class="relative transform overflow-hidden rounded-lg bg-white p-4 text-left shadow-xl transition-all"
+              >
+                <div class="flex justify-between items-center">
+                  <h3 class="text-xl font-semibold text-gray-900" id="modal-title">
+                    Confirm Delete?
+                  </h3>
+                  <button
+                    type="button"
+                    @click="isConfirmOpen = false"
+                    class="text-gray-400 focus:outline-none hover:text-gray-500"
                   >
-                    <path
-                      d="M6 18L18 6M6 6l12 12"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-              <div class="mt-4 text-base text-gray-500">
-                Are you sure you want to delete this item? This action is irreversible.
-              </div>
-              <div class="flex justify-end mt-4 space-x-2">
-                <button
-                  type="button"
-                  @click="isConfirmOpen = false"
-                  class="bg-gray-200 text-gray-500 rounded-md py-2 px-4 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  @click="deletedLocal(props)"
-                  class="bg-red-500 text-white rounded-md py-2 px-4 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  Delete
-                </button>
+                    <svg
+                      class="h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 18L18 6M6 6l12 12"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
+                <div class="mt-4 text-base text-gray-500">
+                  Are you sure you want to delete this item? This action is irreversible.
+                </div>
+                <div class="flex justify-end mt-4 space-x-2">
+                  <button
+                    type="button"
+                    @click="isConfirmOpen = false"
+                    class="bg-gray-200 text-gray-500 rounded-md py-2 px-4 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    @click="deletedLocal(props)"
+                    class="bg-red-500 text-white rounded-md py-2 px-4 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </td>
-    </template>
+        </td>
+      </template>
 
-    <template v-slot:myTemplate="{ props }">
-      <custom
-        :column="props.column"
-        :filterable="props.filterable"
-        :filter="props.filter"
-        :sortable="props.sortable"
-        :sort="props.sort"
-        :columns="Transactioncolumns"
-        @sortchange="(e: any) => props.onSortchange(e)"
-        @filterchange="(e: any) => props.onFilterchange(e)"
-        @closemenu="(e: any) => props.onClosemenu(e)"
-        @contentfocus="(e: any) => props.onContentfocus(e)"
-      />
-    </template>
-
-    <template v-slot:BrancheCell="{ props }" v-if="branches.length > 0">
-      <td>
-        <span v-if="user?.user.Admin == 1">
-          <dropdownlist
-            :data-items="[user?.user.branche]"
-            :field="props.field"
-            :data-item-key="'BrancheId'"
-            :text-field="'BrancheName'"
-            :style="{ width: '155px' }"
-            :value="props.dataItem['branche']"
-            @change="
-              (event = { value: { BrancheId: 1 } }) => {
-                props.dataItem['BrancheFId'] = event?.value.BrancheId
-                props.dataItem['FromBranchId'] = event?.value.BrancheId
-                updateInEdit(props.dataItem)
-                // props.dataItem.inEdit = true
-                props.dataItem.status = 'edited'
-                itemChange({
-                  dataItem: props.dataItem,
-                  field: 'branche.BrancheName',
-                  value: props.dataItem.BrancheFId
-                })
-              }
-            "
-            @reload="reload"
-          ></dropdownlist>
-        </span>
-        <span v-else>
-          <dropdownlist
-            :data-items="branches"
-            :field="props.field"
-            :data-item-key="'BrancheId'"
-            :text-field="'BrancheName'"
-            :style="{ width: '155px' }"
-            :value="props.dataItem['branche']"
-            @itemchange="itemChange"
-            @change="
-              (event = { value: { BrancheId: 1 } }) => {
-                props.dataItem['branche'] = event?.value
-                props.dataItem['BrancheFId'] = event?.value.BrancheId
-                props.dataItem['FromBranchId'] = event?.value.BrancheId
-                props.dataItem.user['BrancheFId'] = event?.value.BrancheId
-                updateInEdit(props.dataItem)
-                // props.dataItem.inEdit = true
-                props.dataItem.status = 'edited'
-                itemChange({
-                  dataItem: props.dataItem,
-                  field: 'branche.BrancheName',
-                  value: props.dataItem.BrancheFId
-                })
-              }
-            "
-            @reload="reload"
-          ></dropdownlist>
-        </span>
-      </td>
-    </template>
-    <template v-slot:NumberCell="{ props }">
-      <span>
-        <input
-          v-model="props.dataItem.Number"
-          @change="
-            (event) => {
-              setUserTypeFromPhone(event, props.dataItem),
-                updateInEdit(props.dataItem),
-                (props.dataItem.status = 'edited')
-            }
-          "
-          style="
-            width: 90%;
-            margin-top: 5%;
-            margin-left: 5%;
-            padding: 4px;
-            border-radius: 5px;
-            font-size: 16px;
-          "
-        />
-      </span>
-    </template>
-    <template v-slot:TypeCell="{ props }" v-if="branches.length > 0">
-      <td>
-        <dropdownlist
-          :data-items="userTypes"
-          :field="props.field"
-          :data-item-key="'UserTypeId'"
-          :value="props.dataItem['user_type']"
-          :text-field="'UserTypeName'"
-          @change="
-            (event = { value: { UserTypeId: 1 } }) => {
-              props.dataItem['user_type'] = event?.value
-              props.dataItem['UserTypeFId'] = event?.value.UserTypeId
-              updateInEdit(props.dataItem)
-              itemChange({
-                dataItem: props.dataItem,
-                field: 'user_type.UserTypeName',
-                value: event?.value
-              })
-            }
-          "
-          :style="{ width: '155px' }"
-          @reload="reload"
-        ></dropdownlist>
-      </td>
-    </template>
-    <template v-slot:CurrencyCell="{ props }" v-if="branches.length > 0">
-      <td>
-        <dropdownlist
-          :data-items="currencyOption"
-          :field="props.field"
-          :data-item-key="'CurrencyId'"
-          :value="props.dataItem['currency']"
-          :text-field="'CurrencyCode'"
-          @change="
-            (event = { value: { CurrencyId: 1 } }) => {
-              props.dataItem['currency'] = event?.value
-              props.dataItem['CurrencyFId'] = event.value.CurrencyId
-              // props.dataItem.inEdit = true
-              // props.dataItem.status = 'edited'
-              itemChange({
-                dataItem: props.dataItem,
-                field: 'currency.CurrencyCode',
-                value: props.dataItem.CurrencyFId
-              })
-            }
-          "
-          :style="{ width: '155px' }"
-          @itemchange="itemChange"
-          @reload="reload"
-        ></dropdownlist>
-      </td>
-    </template>
-    <template v-slot:SendCell="{ props }">
-      <td class="k-command-cell k-table-td cursor-pointer">
-        <template v-if="user?.user.Admin == 0">
-          <span
-            @dblclick="updateSentStatus(props.dataItem)"
-            :class="{
-              clickable: true,
-              'flex items-center space-x-2': true,
-              'text-green-600 font-semibold': props.dataItem.Sent == 1,
-              'text-red-600 font-semibold': props.dataItem.Sent == 0
-            }"
-          >
-            {{ props.dataItem.Sent == 1 ? 'Yes' : 'No' }}
-            <svg
-              v-if="props.dataItem.Sent == 1"
-              xmlns="http://www.w3.org/2000/svg"
-              class="icon icon-tabler icon-tabler-check"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              fill="none"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-              <path d="M5 12l5 5l10 -10" />
-            </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              class="icon icon-tabler icon-tabler-x"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              fill="none"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-              <path d="M18 6l-12 12" />
-              <path d="M6 6l12 12" />
-            </svg>
+      <template v-slot:BrancheCell="{ props }" v-if="branches.length > 0">
+        <td>
+          <span v-if="user?.user.Admin == 1">
+            <dropdownlist
+              :data-items="[user?.user.branche]"
+              :field="props.field"
+              :data-item-key="'BrancheId'"
+              :text-field="'BrancheName'"
+              :style="{ width: '155px' }"
+              :value="props.dataItem['branche']"
+              @change="
+                (event = { value: { BrancheId: 1 } }) => {
+                  props.dataItem['BrancheFId'] = event?.value.BrancheId
+                  props.dataItem['FromBranchId'] = event?.value.BrancheId
+                  updateInEdit(props.dataItem)
+                  // props.dataItem.inEdit = true
+                  props.dataItem.status = 'edited'
+                  itemChange({
+                    dataItem: props.dataItem,
+                    field: 'branche.BrancheName',
+                    value: props.dataItem.BrancheFId
+                  })
+                }
+              "
+              @reload="reload"
+            ></dropdownlist>
           </span>
-        </template>
-        <template v-else>
-          <span
-            :class="{
-              clickable: false,
-              'flex items-center space-x-2': true,
-              'text-green-600 font-semibold': props.dataItem.Sent == 1,
-              'text-red-600 font-semibold': props.dataItem.Sent == 0
-            }"
-          >
-            {{ props.dataItem.Sent == 1 ? 'Yes' : 'No' }}
-            <svg
-              v-if="props.dataItem.Sent == 1"
-              xmlns="http://www.w3.org/2000/svg"
-              class="icon icon-tabler icon-tabler-check"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              fill="none"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-              <path d="M5 12l5 5l10 -10" />
-            </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              class="icon icon-tabler icon-tabler-x"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              fill="none"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-              <path d="M18 6l-12 12" />
-              <path d="M6 6l12 12" />
-            </svg>
+          <span v-else>
+            <dropdownlist
+              :data-items="branches"
+              :field="props.field"
+              :data-item-key="'BrancheId'"
+              :text-field="'BrancheName'"
+              :style="{ width: '155px' }"
+              :value="props.dataItem['branche']"
+              @itemchange="itemChange"
+              @change="
+                (event = { value: { BrancheId: 1 } }) => {
+                  props.dataItem['branche'] = event?.value
+                  props.dataItem['BrancheFId'] = event?.value.BrancheId
+                  props.dataItem['FromBranchId'] = event?.value.BrancheId
+                  props.dataItem.user['BrancheFId'] = event?.value.BrancheId
+                  updateInEdit(props.dataItem)
+                  // props.dataItem.inEdit = true
+                  props.dataItem.status = 'edited'
+                  itemChange({
+                    dataItem: props.dataItem,
+                    field: 'branche.BrancheName',
+                    value: props.dataItem.BrancheFId
+                  })
+                }
+              "
+              @reload="reload"
+            ></dropdownlist>
           </span>
-        </template>
-      </td>
-    </template>
-    <template v-slot:ResponceCell="{ props }">
-      <td class="k-command-cell k-table-td">
-        <template v-if="user?.user.Admin == 0">
+        </td>
+      </template>
+      <template v-slot:NumberCell="{ props }">
+        <span>
           <input
-            type="text"
-            v-model="props.dataItem.Response"
-            @change="updateInEdit(props.dataItem)"
+            v-model="props.dataItem.Number"
+            @change="
+              (event) => {
+                setUserTypeFromPhone(event, props.dataItem),
+                  updateInEdit(props.dataItem),
+                  (props.dataItem.status = 'edited')
+              }
+            "
             style="
-              width: 100%;
+              width: 90%;
+              margin-top: 5%;
+              margin-left: 5%;
               padding: 4px;
-              text-align: center;
               border-radius: 5px;
               font-size: 16px;
             "
-            :required="true"
           />
-        </template>
-        <template v-else>
-          <span>{{ props.dataItem.Response }}</span>
-        </template>
-      </td>
-    </template>
+        </span>
+      </template>
+      <template v-slot:TypeCell="{ props }" v-if="branches.length > 0">
+        <td>
+          <dropdownlist
+            :data-items="userTypes"
+            :field="props.field"
+            :data-item-key="'UserTypeId'"
+            :value="props.dataItem['user_type']"
+            :text-field="'UserTypeName'"
+            @change="
+              (event = { value: { UserTypeId: 1 } }) => {
+                props.dataItem['user_type'] = event?.value
+                props.dataItem['UserTypeFId'] = event?.value.UserTypeId
+                updateInEdit(props.dataItem)
+                itemChange({
+                  dataItem: props.dataItem,
+                  field: 'user_type.UserTypeName',
+                  value: event?.value
+                })
+              }
+            "
+            :style="{ width: '155px' }"
+            @reload="reload"
+          ></dropdownlist>
+        </td>
+      </template>
+      <template v-slot:CurrencyCell="{ props }" v-if="branches.length > 0">
+        <td>
+          <dropdownlist
+            :data-items="currencyOption"
+            :field="props.field"
+            :data-item-key="'CurrencyId'"
+            :value="props.dataItem['currency']"
+            :text-field="'CurrencyCode'"
+            @change="
+              (event = { value: { CurrencyId: 1 } }) => {
+                props.dataItem['currency'] = event?.value
+                props.dataItem['CurrencyFId'] = event.value.CurrencyId
+                // props.dataItem.inEdit = true
+                // props.dataItem.status = 'edited'
+                itemChange({
+                  dataItem: props.dataItem,
+                  field: 'currency.CurrencyCode',
+                  value: props.dataItem.CurrencyFId
+                })
+              }
+            "
+            :style="{ width: '155px' }"
+            @itemchange="itemChange"
+            @reload="reload"
+          ></dropdownlist>
+        </td>
+      </template>
+      <template v-slot:SendCell="{ props }">
+        <td class="k-command-cell k-table-td cursor-pointer">
+          <template v-if="user?.user.Admin == 0">
+            <span
+              @dblclick="updateSentStatus(props.dataItem)"
+              :class="{
+                clickable: true,
+                'flex items-center space-x-2': true,
+                'text-green-600 font-semibold': props.dataItem.Sent == 1,
+                'text-red-600 font-semibold': props.dataItem.Sent == 0
+              }"
+            >
+              {{ props.dataItem.Sent == 1 ? 'Yes' : 'No' }}
+              <svg
+                v-if="props.dataItem.Sent == 1"
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon icon-tabler icon-tabler-check"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M5 12l5 5l10 -10" />
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon icon-tabler icon-tabler-x"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M18 6l-12 12" />
+                <path d="M6 6l12 12" />
+              </svg>
+            </span>
+          </template>
+          <template v-else>
+            <span
+              :class="{
+                clickable: false,
+                'flex items-center space-x-2': true,
+                'text-green-600 font-semibold': props.dataItem.Sent == 1,
+                'text-red-600 font-semibold': props.dataItem.Sent == 0
+              }"
+            >
+              {{ props.dataItem.Sent == 1 ? 'Yes' : 'No' }}
+              <svg
+                v-if="props.dataItem.Sent == 1"
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon icon-tabler icon-tabler-check"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M5 12l5 5l10 -10" />
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                class="icon icon-tabler icon-tabler-x"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M18 6l-12 12" />
+                <path d="M6 6l12 12" />
+              </svg>
+            </span>
+          </template>
+        </td>
+      </template>
+      <template v-slot:ResponceCell="{ props }">
+        <td class="k-command-cell k-table-td">
+          <template v-if="user?.user.Admin == 0">
+            <input
+              type="text"
+              v-model="props.dataItem.Response"
+              @change="updateInEdit(props.dataItem)"
+              style="
+                width: 100%;
+                padding: 4px;
+                text-align: center;
+                border-radius: 5px;
+                font-size: 16px;
+              "
+              :required="true"
+            />
+          </template>
+          <template v-else>
+            <span>{{ props.dataItem.Response }}</span>
+          </template>
+        </td>
+      </template>
 
-    <!-- <template v-slot:myDropDownCell="{ props }">
+      <!-- <template v-slot:myDropDownCell="{ props }">
       <ddcell :data-item="props.dataItem" :field="props.field" />
     </template> -->
-  </grid>
+    </grid>
+  </div>
 </template>
 <style>
 th.k-header.customMenu > div > div > span.k-i-more-vertical::before,
