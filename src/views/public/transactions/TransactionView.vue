@@ -225,7 +225,7 @@ const updated = async () => {
     // Supprimer les éléments
     if (deletedTransactions.value.length > 0) {
       const deleteItemsPromises = deletedTransactions.value.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).post(
+        const response = await useAxiosRequestWithToken(token).get(
           `${ApiRoutes.deleteTransaction}/${item.TransactionId}`
         )
         const index = transactions.value.findIndex((i) => i.TransactionId === item.TransactionId)
