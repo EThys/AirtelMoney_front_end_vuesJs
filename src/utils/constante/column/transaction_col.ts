@@ -56,7 +56,7 @@ export const Transactioncolumns = [
   {
     field: 'DateMovemented',
     title: 'Date',
-    width: '150px',
+    width: '185px',
     editable: false,
     resizable: true,
     ClassName: 'sty'
@@ -64,7 +64,7 @@ export const Transactioncolumns = [
   {
     field: 'Sent',
     title: 'Sent',
-    width: '120px',
+    width: '180px',
     cell: 'SendCell',
     resizable: true,
     ClassName: 'sty'
@@ -72,7 +72,7 @@ export const Transactioncolumns = [
   {
     field: 'Response',
     title: 'Response',
-    width: '120px',
+    width: '180px',
     resizable: true,
     cell: 'ResponceCell',
     ClassName: 'sty'
