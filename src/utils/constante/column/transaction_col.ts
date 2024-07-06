@@ -11,7 +11,7 @@ export const Transactioncolumns = [
   {
     field: 'Number',
     title: 'Numéro',
-    width: '130px',
+    width: '185px',
     resizable: true,
     filter: 'text',
     cell: 'NumberCell',
@@ -23,7 +23,8 @@ export const Transactioncolumns = [
     width: '185px',
     resizable: true,
     filter: 'text',
-    ClassName: 'sty'
+    ClassName: 'sty',
+    cell: 'AmountCell'
   },
   {
     field: 'user_type.UserTypeName',
@@ -49,12 +50,13 @@ export const Transactioncolumns = [
     width: '185px',
     resizable: true,
     filter: 'text',
-    ClassName: 'sty'
+    ClassName: 'sty',
+    cell: 'NoteCell'
   },
   {
     field: 'DateMovemented',
-    title: 'DateMovemented',
-    width: '190px',
+    title: 'Date',
+    width: '150px',
     editable: false,
     resizable: true,
     ClassName: 'sty'
@@ -62,7 +64,7 @@ export const Transactioncolumns = [
   {
     field: 'Sent',
     title: 'Sent',
-    width: '115px',
+    width: '120px',
     cell: 'SendCell',
     resizable: true,
     ClassName: 'sty'
@@ -70,7 +72,7 @@ export const Transactioncolumns = [
   {
     field: 'Response',
     title: 'Response',
-    width: '115x',
+    width: '120px',
     resizable: true,
     cell: 'ResponceCell',
     ClassName: 'sty'

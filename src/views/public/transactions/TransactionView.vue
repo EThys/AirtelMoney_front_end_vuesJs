@@ -150,7 +150,7 @@ const updated = async () => {
   )
   // console.log('newItems', newItems)
 
-  const updatedItems = editedItems.filter((item) => !item.isNew && !item.TransactionId.find('tmp_'))
+  const updatedItems = editedItems.filter((item) => !item.isNew)
 
   try {
     const promises = []
@@ -194,7 +194,7 @@ const updated = async () => {
           message: msg,
           type: type,
           position: 'top-right',
-          duration: 5000
+          duration: 1000
         })
       })
       // promises.push(...newItemsPromises)
@@ -202,7 +202,7 @@ const updated = async () => {
     // Mettre à jour les éléments existants en PUT
     if (updatedItems.length > 0) {
       const updatedItemsPromises = updatedItems.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).put(
+        const response = await useAxiosRequestWithToken(token).post(
           `${ApiRoutes.updateTransaction}/${item.TransactionId}`,
           item
         )
@@ -226,6 +226,7 @@ const updated = async () => {
             duration: 1000
           })
         }
+        await get_transaction()
       })
       promises.push(...updatedItemsPromises)
     }
@@ -233,14 +234,17 @@ const updated = async () => {
     // Supprimer les éléments
     if (deletedTransactions.value.length > 0) {
       const deleteItemsPromises = deletedTransactions.value.map(async (item) => {
-        const response = await useAxiosRequestWithToken(token).post(
-          `${ApiRoutes.deleteTransaction}/${item.TransactionId}`
-        )
-        const index = transactions.value.findIndex((i) => i.TransactionId === item.TransactionId)
-        if (index > -1) {
-          transactions.value.splice(index, 1)
+        if (item.TransactionId != undefined || item.TransactionId != null) {
+          const response = await useAxiosRequestWithToken(token).post(
+            `${ApiRoutes.deleteTransaction}/${item.TransactionId}`
+          )
+          const index = transactions.value.findIndex((i) => i.TransactionId === item.TransactionId)
+          if (index > -1) {
+            transactions.value.splice(index, 1)
+          }
+          await get_transaction()
+          return response
         }
-        return response
       })
 
       const deleteResponses = await Promise.all(deleteItemsPromises)
@@ -488,7 +492,7 @@ const get_branches = () => {
       //error
     })
 }
-
+const datas = computed(() => filterBy(dataResult.value.data, filter.value))
 const get_phoneTypes = () => {
   useAxiosRequestWithToken(token)
     .get(`${ApiRoutes.phoneType}`)
@@ -690,7 +694,6 @@ const focusCursor = () => {
     document.querySelector('sty').style.backgroundColor = 'white'
   }
 }
-const datas = computed(() => filterBy(dataResult.value.data, filter.value))
 </script>
 <template>
   <Nav />
@@ -1029,6 +1032,7 @@ const datas = computed(() => filterBy(dataResult.value.data, filter.value))
           />
         </span>
       </template>
+
       <template v-slot:TypeCell="{ props }" v-if="branches.length > 0">
         <td>
           <dropdownlist
@@ -1055,6 +1059,34 @@ const datas = computed(() => filterBy(dataResult.value.data, filter.value))
             :style="{ width: '155px' }"
             @reload="reload"
           ></dropdownlist>
+        </td>
+      </template>
+      <template v-slot:AmountCell="{ props }">
+        <td>
+          <input
+            type="number"
+            min="1"
+            v-model="props.dataItem.Amount"
+            @change="
+              (event) => {
+                updateInEdit(props.dataItem), (props.dataItem.status = 'edited')
+              }
+            "
+            style="width: 90%; margin-left: 5%; padding: 4px; border-radius: 5px; font-size: 16px"
+          />
+        </td>
+      </template>
+      <template v-slot:NoteCell="{ props }">
+        <td>
+          <input
+            v-model="props.dataItem.Note"
+            @change="
+              (event) => {
+                updateInEdit(props.dataItem), (props.dataItem.status = 'edited')
+              }
+            "
+            style="width: 90%; margin-left: 5%; padding: 4px; border-radius: 5px; font-size: 16px"
+          />
         </td>
       </template>
       <template v-slot:CurrencyCell="{ props }" v-if="branches.length > 0">
