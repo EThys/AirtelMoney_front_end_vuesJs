@@ -15,7 +15,7 @@ import { useToast } from 'vue-toast-notification'
 import { setUser } from '@/stores/user'
 //@ts-ignore
 import { setToken } from '@/stores/token'
-
+const name = 'AuthLoginView'
 const showHelp = ref<Boolean>(false)
 const loading = ref<Boolean>(false)
 const router = useRouter()
